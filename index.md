@@ -5,7 +5,7 @@ Hello! I'm Dean, and this a place on the internet where I can store details of s
 
 ## My Interests
 - **Cyber Security**: Securing computers and networks.
-- **Tooling**: NAT gateways, VPC setups, CloudFormation
+- **Tooling**: Software designed and built for specific purposes. 
 - **Amateur Radio**: All things radio
 - **Gardening**: Keeping things alive in the physical world
 
