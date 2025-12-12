@@ -1,14 +1,16 @@
+
 # Welcome to My Website
 
-## About Me
-Hello! I'm Dean, and this a place on the internet where I can store details of some of my projects. 
+Hi! I'm Dean. This is my personal space for projects, documentation, and explorations in different hobbies I tinker with.
 
 ## My Interests
-- **Cyber Security**: Securing computers and networks.
-- **Tooling**: Software designed and built for specific purposes. 
-- **Amateur Radio**: All things radio
+
+- **[Radio](./radio.md)** - All things Radio
+- **Software**: Software designed and built for specific purposes.
+- **[Technology](./technology.md)**: Securing computers and networks.
+- **Documentation** - Technical guides, notes, and writeups
 - **Gardening**: Keeping things alive in the physical world
 
-## Contact
-Feel free to reach out via:
-- [GitHub](https://github.com/birdman4512)
+---
+
+Feel free to explore, and don't hesitate to reach out if you have any questions or feedback!
