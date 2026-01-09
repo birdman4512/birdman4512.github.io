@@ -9,6 +9,7 @@ This index links to topic pages covering practical, technical, and regulatory as
 ## Projects
 
 - [Solar Meshtastic Node](radio/solar-meshtastic-node.md) — The building of a solar meshtastic node (or at least attempting to...)
+- [Frequency Research](radio/frequency-research.md) - Researching the various frequencies that I find. 
 
 ---
 Return to [home](../index.md)
