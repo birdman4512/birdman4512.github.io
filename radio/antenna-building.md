@@ -33,9 +33,9 @@ You need about 2.5m of cable for the antenna, so add to that length whatever fee
 
 ### Tuning
 
-It took me a few attempts to get the antenna right. My first build wasnt trimmed (I didnt have the nanoVA) and so had a high SWR. 
+It took me a few attempts to get the antenna right. My first build wasnt trimmed (I didnt have the nanoVNA) and so had a high SWR. 
 
-My second attempt trimmed it to short, I had recieved the nanoVA, but I tuned it lying down which gave me a different reading when you stand it upright. 
+My second attempt trimmed it to short, I had recieved the nanoVNA, but I tuned it lying down which gave me a different reading when you stand it upright. 
 
 This image, which is a little hard to read, shows a SWR of 1.45 @ 207Mhz, way above my goal of 146Mhz. It did have an OK SWR in UHF.
 
