@@ -15,6 +15,7 @@ This page has helpful links for working radio
 - [Troposheric Ductoing Forecast](https://dxinfocentre.com/tropo_aus.html) - Provides maps that can be used to identify opportunities for tropospheric ducting.
 - [Solar Data](https://www.hamqsl.com/solar.html) - Details about the solar cycle and its impact on radio.
 - [Solar Weather](https://www.sws.bom.gov.au/) - Space Weather
+- [Australian Space Weather Forecasting](https://www.sws.bom.gov.au/HF_Systems)
 
 ### Tools
 
