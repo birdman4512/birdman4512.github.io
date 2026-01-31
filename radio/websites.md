@@ -9,6 +9,7 @@ This page has helpful links for working radio
 - [ACMA Site Location Map](https://web.acma.gov.au/rrl/site_proximity.main_page) - Allows you to look up transmission sites and identify who is using a site and what frequencies they are using from the site.
 - [ACMA Register of Radio Communication Licences](https://web.acma.gov.au/rrl/register_search.main_page) - Allows you to search for a licence holder by a whole range of criteria. 
 - [SigID](https://sigidwiki.com/wiki/Signal_Ideentification_guide) - Helps identify different types of signals
+- [Every Major Ham Radio Band Explained](https://www.youtube.com/watch?v=jULGnZnElJY) - An overview of the different radio bands, distances, times, etc.
 
 ### Weather
 
