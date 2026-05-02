@@ -10,6 +10,7 @@ This index links to topic pages covering practical, technical, and regulatory as
 
 ## Projects
 
+- [Ham Dashboard](radio/hamdashboard/) — Live dashboard with propagation, APRS, FT8, weather, and more.
 - [Solar Meshtastic Node](radio/solar-meshtastic-node.md) — The building of a solar meshtastic node (or at least attempting to...)
 - [Frequency Research](radio/frequency-research.md) - Researching the various frequencies that I find. 
 - [Antenna Building](radio/antenna-building.md) - Attempts to build antenna. 
