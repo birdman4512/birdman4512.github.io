@@ -1,122 +1,159 @@
-# OpenClaw setup overview
+# OpenClaw: A Multi-Workspace AI Agent Setup
 
-This is the current layout of the OpenClaw setup and how the pieces
-fit together.
+Most people who use AI assistants end up with one giant context that does everything — personal questions, work tasks, sensitive research, family scheduling — all tangled together. That works fine until it doesn't: business context bleeds into personal conversations, a casual question lands in the middle of a forensic case, or the family assistant says something it really shouldn't.
 
-## 1) The main agent workspaces
+OpenClaw is my attempt to solve that properly. Rather than one assistant that does everything, it's a set of purpose-built workspaces — each with its own context, tools, tone, and boundaries. When I start a conversation, it gets routed to the right place automatically based on what it is.
+
+---
+
+## The Four Workspaces
 
 ### Personal Claw
-- Purpose: Dean’s private/direct assistant.
-- Best for: personal tasks, private context, general help, and
-everyday coordination.
-- Tone/style: concise, discreet, composed.
-- Current home: `/home/dean/openclaw-agents/personal-claw`
-- This is the default place for private conversations.
+My private, direct assistant. Handles everyday coordination, general help, and anything I don't want mixed into work. Concise and direct — it doesn't need to write like a business report. This is the default if nothing else fits.
 
 ### Business Claw
-- Purpose: QuirkyIT business support.
-- Best for: business planning, defensive OSINT, service packaging,
-client-ready reports, scopes, and proposals.
-- Current home: `/home/dean/openclaw-agents/business-claw`
-- It is kept separate from private work so business context stays
-clean and reusable.
-- If work becomes evidence-heavy, DFIR-heavy, or case-driven, it hands
-off to Forensic Claw.
+Focused on [QuirkyIT](https://www.quirkyit.com.au) work — business planning, client-facing documents, scopes and proposals, and defensive OSINT. The business context here is kept clean and reusable across sessions, which matters when you're working on proposals or packaging services. If a piece of work turns evidence-heavy or starts looking more like a DFIR case, it hands off to Forensic Claw rather than trying to handle it inline.
 
 ### Forensic Claw
-- Purpose: lawful DFIR and intrusion analysis.
-- Best for: evidence triage, log analysis, timelines, disk images,
-memory, PCAPs, and report-ready findings.
-- Current home: `/home/dean/openclaw-agents/forensic-claw`
-- Case storage lives under: `/home/dean/openclaw-cases/cases/<case-id>/`
-- It is strict about evidence: confirm facts, separate inferences, and
-do not guess.
+This one has the strictest operating rules. It's built for lawful DFIR and intrusion analysis — evidence triage, log analysis, disk images, memory dumps, PCAPs, and building timelines that hold up to scrutiny. The key behaviour here is separating confirmed facts from inferences and not guessing. A forensic report that blurs those lines is worse than no report at all, so the workspace is explicitly tuned to stay careful.
+
+Cases live in their own isolated storage under a case ID, which keeps different engagements from contaminating each other.
 
 ### Family Claw
-- Purpose: family-facing assistant.
-- Best for: tutoring help, reminders, calendar management, and safe
-household assistance.
-- Current home: `/home/dean/openclaw-instances/family`
-- It is intentionally separate from Dean private and business work.
-- Dean is the admin/operator for the family setup.
+A separate Docker-based instance with a deliberately low-risk posture. Handles tutoring help, reminders, and calendar management using the shared family Google Calendar. It runs containerised so it can be moved to a different host without reconstructing everything from scratch. I remain the admin/operator behind the scenes — the family-facing experience is intentionally simple.
 
-## 2) How the agents work
+---
 
-The setup is intentionally split by job:
-- **Personal Claw** handles private/direct work.
-- **Business Claw** handles QuirkyIT business and OSINT-style work.
-- **Forensic Claw** handles technical evidence and case work.
-- **Family Claw** handles family-safe scheduling and assistance.
+## Tools vs Skills
 
-That separation keeps each workspace focused and reduces
-cross-contamination between private, business, forensic, and family
-context.
+One of the design choices that makes this work in practice is the distinction between tools and skills.
 
-## 3) How tools and skills work
+**Tools** are what an agent can actually do — run shell commands, query Google Workspace, call forensic wrappers for disk and log analysis, run OSINT lookups. They're capabilities.
 
-### Tools
-Tools are the actual commands and wrappers an agent can use.
-Examples:
-- shell commands
-- Google Workspace access via `gog`
-- forensic wrappers for disk/log/memory analysis
-- business OSINT/discovery tools
+**Skills** are the instructions for how to use those capabilities well — when to use a tool, what the safe operating boundaries are, how to format output, what caveats apply. They're judgment.
 
-### Skills
-Skills are the instructions for how to use those tools well.
-They usually cover:
-- when to use the tool
-- safe operating boundaries
-- preferred command patterns
-- caveats and limitations
-- output expectations
+Each workspace keeps its own set of both. That's what lets each claw behave differently even when the underlying model is the same: the forensic workspace has tight evidence-handling skills, the business workspace knows how to write a scope of work, the personal one doesn't need any of that overhead.
 
-In practice:
-- **tools** do the work
-- **skills** tell the agent how to use them properly
+---
 
-Each workspace keeps its own skills and notes so the setup can stay
-tuned to the job it does.
+## Why the Separation Matters
 
-## 4) Family Claw setup
+It would be simpler to have one assistant and just describe the context at the start of each conversation. In practice that breaks down quickly. Context bleeds across sessions, the tone drifts, and you end up with a general-purpose assistant that's mediocre at everything rather than genuinely good at any one thing.
 
-Family Claw is a portable Docker-based OpenClaw instance.
+Keeping the workspaces separate also makes the routing decision explicit. When a request comes in, the right worker is inferred automatically:
 
-### Layout
-- `docker/` — compose and environment files
-- `state/` — OpenClaw config/state mount
-- `workspace/` — family-specific workspace
-- `env/` — reserved for secrets/env support
+- Personal or everyday → **Personal Claw**
+- Business, client work, or OSINT → **Business Claw**
+- Evidence, DFIR, or case work → **Forensic Claw**
+- Family scheduling or household → **Family Claw**
 
-### Current runtime details
-- Custom family image pinned via `docker/Dockerfile` and `docker/.env.example`
-- Host port `18801` maps to container port `18789`
-- Google credential paths and gateway tokens live only in ignored runtime files
-- Designed to be moved to a new host later by copying the directory tree
+If something is genuinely ambiguous, the setup picks the most evidence-aligned worker and explains why — rather than quietly guessing and getting it wrong.
 
-### Family behavior
-- Focused on tutoring, reminders, and calendar help
-- Uses the shared `Bird Family` calendar for normal scheduling
-- Uses `Birthdays / Anniversarys` for birthdays and anniversaries
-- Keeps a low-risk, family-safe posture
-- Dean remains the admin/operator behind the scenes
+---
 
-## 5) Why this structure works
+## Technical Setup
 
-- Keeps private, business, forensic, and family work separated
-- Makes it easier to add specialist behavior without turning
-everything into one giant pile
-- Lets each workspace have its own tools, skills, memory, and tone
-- Makes handoffs cleaner when work moves from one domain to another
+### Workspace layout
 
-## 6) Practical routing rule
+Every workspace follows the same directory pattern. The root holds a small set of identity and config files that define who the agent is and how it operates:
 
-When a request comes in, the assistant should infer the right worker
-automatically:
-- private/direct → Personal Claw
-- business/OSINT/client work → Business Claw
-- evidence/case/DFIR work → Forensic Claw
-- family scheduling/help → Family Claw
+| File | Purpose |
+|---|---|
+| `AGENTS.md` | Operating rules and hard boundaries |
+| `SOUL.md` | Tone and persona |
+| `IDENTITY.md` | Agent identity |
+| `USER.md` | Operator context — who the agent is working for and why |
+| `MEMORY.md` | Durable notes that persist across sessions |
+| `HEARTBEAT.md` | Ongoing maintenance and checklist guidance |
+| `TOOLS.md` | Local setup notes for available tooling |
 
-If the request is ambiguous, it should choose the most
-evidence-aligned worker and explain why.
+Beneath that, working directories handle the actual output:
+
+```
+notes/        scratch notes and research checkpoints
+outputs/      deliverables and final artifacts
+templates/    reusable structures
+history/      notable command and tool history
+repos/        checked-out projects the agent works on
+skills/       per-tool instruction files
+tools/        wrapper scripts and Docker build files
+.openclaw/    runtime state
+```
+
+The same layout is reused across every specialised workspace. What changes is the content — the forensic workspace has different skills, tools, and memory than the personal one, but the shape is identical. That consistency makes it easy to navigate across workspaces and to add a new one without reinventing the structure.
+
+### Skills files
+
+Skills are Markdown files with a small YAML frontmatter header. There is no plugin registry — the agent reads the file and uses the documentation inside to understand when and how to use a capability.
+
+```markdown
+---
+name: business-tool-httpx
+description: Use httpx from the tools container for HTTP probing and live web triage.
+user-invocable: false
+---
+
+# business-tool-httpx
+
+## What it's for
+HTTP probing and fingerprinting during recon or triage.
+
+## Invocation
+`/path/to/wrapper httpx [args...]`
+
+## Rules
+- Only use on targets within the current engagement scope
+- Save interesting findings to outputs/
+- Do not run broad scans without explicit instruction
+```
+
+The body covers what the tool is for, how to call it, scope limits, what outputs to keep, and any caveats. That combination — the frontmatter for discoverability, the body for judgment — is what separates a skill from a simple alias.
+
+### How tools are made available
+
+Tool registration is a three-part convention rather than a central system:
+
+1. **The image provides the binaries** — tool packages are installed into a Docker image, giving the agent a reproducible, isolated environment to run them in
+2. **The skill documents the tool** — each tool gets its own file under `skills/`, explaining usage and boundaries
+3. **A wrapper runs the tool** — `tools/run-tool.sh` is the standard launcher; it executes the command inside the container with the workspace mounted in
+
+This keeps the setup simple to extend. Adding a new tool means building it into the image, writing a skill file, and adding a wrapper line — no framework to configure.
+
+### Family Claw Docker layout
+
+The Family Claw instance is fully containerised and designed to move hosts without reconstruction. The directory tree is split into three clear areas:
+
+```
+docker/
+    Dockerfile          custom family image
+    compose.yml         service definition (loopback-only binding)
+    .env.example        template — real runtime env is gitignored
+
+state/
+    Machine-managed runtime data: config, approvals, logs, cron
+    metadata, task state, memory, locks, and queues.
+    This is what OpenClaw writes to; not intended to be edited by hand.
+
+workspace/
+    Human-readable assistant workspace: daily notes, agent docs,
+    MEMORY.md, HEARTBEAT.md, family-specific working notes.
+    This is what you read and occasionally edit directly.
+```
+
+The deliberate split between `state/` and `workspace/` matters for portability and recovery. If something goes wrong with the runtime, `workspace/` is unaffected — it's just files. Moving to a new host means copying the directory tree and pointing Docker at it.
+
+### Design decisions worth knowing about
+
+A few choices that are less obvious from the structure alone:
+
+**Loopback-only exposure.** The gateway is bound to localhost, not the network interface. The family assistant isn't reachable from other devices on the network unless explicitly forwarded. That was a deliberate choice, not a default.
+
+**No secrets in the repo.** Credential files, tokens, and environment-specific config are gitignored and live only in the runtime environment. The repo contains only the structure and documentation.
+
+**Thin customisation over upstream.** The Family Claw image is a small derivative of upstream OpenClaw rather than a fork. That keeps it easy to update without merging diverged codebases.
+
+**Separate instance trees, not separate configs.** Private, business, and family are completely separate directory trees, not the same instance with different config flags. The isolation is structural, not just conceptual.
+
+---
+
+Return to [Technology](../technology.md)
