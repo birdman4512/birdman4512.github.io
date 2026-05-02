@@ -15,6 +15,7 @@ var aURL = [
     ["2196F3", "DX MAP",      "https://www.dxmaps.com/spots/mapg.php?Lan=E&Frec=0&ML=M&Map=OC&HF=1", 1, "L"],
     ["2196F3", "SOLAR WX",    "https://www.sws.bom.gov.au/", 1, "L"],
     ["2196F3", "BOM RADAR",   "https://www.bom.gov.au/australia/radar/", 1, "L"],
+    ["2196F3", "RAINVIEWER",  "https://www.rainviewer.com/", 1, "L"],
     ["2196F3", "TROPO",       "https://dxinfocentre.com/tropo_aus.html", 1, "L"],
     ["2196F3", "GREY LINE",   "https://grayline.info/", 1, "L"],
     ["2196F3", "MESHTASTIC",  "https://meshtastic.liamcottle.net/", 1, "R"],
@@ -38,22 +39,22 @@ var aURL = [
 var aIMG = [
     // --- Row 1: HF Solar & Propagation ---
 
-    // X-ray flux shows solar flares → causes HF radio blackouts (D-layer absorption)
-    // K-index shows geomagnetic activity → high K degrades HF propagation
-    ["HF Solar Impact",
-        "https://services.swpc.noaa.gov/images/goes-xray-flux-6-hour.png",
-        "https://services.swpc.noaa.gov/images/noaa-estimated-planetary-k-index-1-minute.png"],
+    // Space weather overview + K-index. K-index > 4 starts degrading HF propagation.
+    ["Space Weather",
+        "https://services.swpc.noaa.gov/images/swx-overview-large.gif",
+        "https://services.swpc.noaa.gov/images/station-k-index.png"],
 
-    // Solar wind and southern hemisphere aurora - aurora disrupts polar HF paths from VK
+    // ACE solar wind speed/density + southern hemisphere aurora forecast.
+    // When aurora is active over Antarctica, polar HF paths from VK are disrupted.
     ["Solar Wind & Aurora",
-        "https://services.swpc.noaa.gov/images/solar-wind-speed-density.png",
-        "https://services.swpc.noaa.gov/images/geospace/aurora_sh.png"],
+        "https://services.swpc.noaa.gov/images/ace-swepam-2-hour.gif",
+        "https://services.swpc.noaa.gov/images/aurora-forecast-southern-hemisphere.jpg"],
 
-    // Ionospheric conditions over Australia - foF2 critical frequency map
-    // Shows usable maximum frequency for each path region
-    ["Ionosphere AU",
-        "https://services.swpc.noaa.gov/images/animations/d-region/now/dregion.png",
-        "https://services.swpc.noaa.gov/images/solar-wind-mag-field.png"],
+    // Geospace 1-day view + ACE IMF Bz (interplanetary magnetic field).
+    // Bz going strongly negative (southward) is the key trigger for geomagnetic storms.
+    ["Geospace / IMF Bz",
+        "https://services.swpc.noaa.gov/images/geospace_1_day.png",
+        "https://services.swpc.noaa.gov/images/ace-mag-2-hour.gif"],
 
     // Real-time grey line image from Fourmilab - shows where grey-line openings are right now
     ["Grey Line",
@@ -94,13 +95,14 @@ var aIMG = [
         "iframe|https://www.spaceflightsoftware.com/ARISS_SSTV/"],
 
     ["Lightning Map",
-        "iframe|https://www.lightningmaps.org/?lang=en#m=oss;t=3;s=0;o=0;b=;ts=0;tzx=23;tzy=32"],
+        "iframe|https://www.lightningmaps.org/"],
 
     // --- Row 4: Weather ---
 
-    // Direct animated GIF from BOM Mt Stapylton radar (IDR66) - covers SE QLD inc. Bellmere
-    ["BOM SE QLD Radar",
-        "https://www.bom.gov.au/radar/IDR66.gif"],
+    // RainViewer radar - BOM hotlink-blocks their GIFs from external sites
+    // Centred on Bellmere QLD at zoom 8 with radar and cloud overlays
+    ["SE QLD Radar",
+        "iframe|https://www.rainviewer.com/map.html?loc=-27.05,152.93,8&oFa=0&oC=1&oU=0&oCS=1&oF=0&oAP=1&rmt=4&c=3&o=83&lm=0&th=0&sm=1&sn=1"],
 
     ["Wind Conditions",
         "iframe|https://embed.windy.com/embed2.html?lat=-27.05&lon=152.93&zoom=7&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"],
