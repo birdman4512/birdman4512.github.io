@@ -9,7 +9,7 @@ var layout_rows = 4;
 // side: "L" = left sidebar, "R" = right sidebar
 // Note: sites blocked by X-Frame-Options are menu-only (not used as tiles)
 var aURL = [
-    ["f3de21", "APRS.FI",     "https://aprs.fi/#!mt=roadmap&z=9&call=VK4DSB&center=-27.05,152.93", 1, "L"],
+    ["f3de21", "APRS",        "https://aprs.to/map/VK4DSB", 1, "L"],
     ["2196F3", "FT8",         "https://pskreporter.info/pskmap.html?what=lhrd&callsign=VK4DSB&mode=FT8&band=0&period=3", 1, "L"],
     ["2196F3", "DX CLUSTER",  "https://www.dxsummit.fi/", 1, "L"],
     ["2196F3", "DX MAP",      "https://www.dxmaps.com/spots/mapg.php?Lan=E&Frec=0&ML=M&Map=OC&HF=1", 1, "L"],
@@ -68,9 +68,9 @@ var aIMG = [
         "iframe|https://pskreporter.info/pskmap.html?what=lhrd&callsign=VK4DSB&mode=FT8&band=40m&period=3&hideunheard=0&loo=0",
         "iframe|https://pskreporter.info/pskmap.html?what=lhrd&callsign=VK4DSB&mode=FT8&band=20m&period=3&hideunheard=0&loo=0"],
 
-    // DX Summit - OH8X cluster aggregator, generally iframe-friendly
+    // DX Summit - clean spot list, focused on Oceania
     ["DX Cluster",
-        "iframe|https://www.dxsummit.fi/DxSpots.aspx?count=30"],
+        "iframe|https://www.dxsummit.fi/DxSpots.aspx?count=20&de_cont=OC"],
 
     // Live HF DX spots plotted on an Oceania map - shows active paths from/to VK4
     ["DX Map - Oceania HF",
@@ -81,10 +81,9 @@ var aIMG = [
 
     // --- Row 3: APRS, Satellite & Comms ---
 
-    // APRS rotates: local Bellmere view (z9) → QLD-wide view (z6)
+    // aprs.fi has frame-busting JS that redirects the whole page - use aprs.to instead
     ["APRS - VK4DSB",
-        "iframe|https://aprs.fi/#!mt=roadmap&z=9&call=VK4DSB&center=-27.05,152.93",
-        "iframe|https://aprs.fi/#!mt=roadmap&z=6&call=VK4DSB&center=-27.05,152.93"],
+        "iframe|https://aprs.to/map/VK4DSB"],
 
     ["Meshtastic Nodes",
         "iframe|https://meshtastic.liamcottle.net/"],
