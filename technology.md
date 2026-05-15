@@ -52,6 +52,15 @@ Docker Compose setup for a self-hosted OpenSearch cluster, making it straightfor
 
 ---
 
+### [forensic-claw](https://github.com/birdman4512/forensic-claw)
+*Dockerised DFIR workstation driven by an AI agent*
+
+A self-contained digital forensics and incident response workstation packaged as Docker. Submit evidence — disk images, memory dumps, packet captures, logs, or suspicious binaries — and an AI agent built on the OpenClaw framework selects appropriate tools, runs analyses under user supervision, and documents findings in standardised case folders (evidence, findings, worklog, status). A wrapper system logs every forensic tool invocation automatically, and dedicated containers handle specialised tools like Volatility 2 and MemProcFS.
+
+**Stack:** Docker · Shell · PowerShell · Sleuth Kit · Volatility · Plaso · Wireshark/tshark · YARA · Anthropic Claude / OpenAI
+
+---
+
 ### [mesh-medic](https://github.com/birdman4512/mesh-medic)
 *A Meshtastic survival bot*
 

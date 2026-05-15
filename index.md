@@ -21,6 +21,7 @@ Open-source tools and write-ups covering incident response, threat intelligence,
 
 - **[talkIR](https://github.com/birdman4512/talkIR)** — Query your IR log data in plain English using an LLM
 - **[SignalSage](https://github.com/birdman4512/SignalSage)** — Automated threat intelligence enrichment bot for Slack and Discord
+- **[forensic-claw](https://github.com/birdman4512/forensic-claw)** — Dockerised DFIR workstation with an AI agent that drives Sleuth Kit, Volatility, Plaso, and more
 - **[mesh-medic](https://github.com/birdman4512/mesh-medic)** — Offline AI survival assistant over Meshtastic radio networks
 
 ## AI & LLM
@@ -30,6 +31,7 @@ I tinker a lot with local and cloud LLMs — running models via Ollama, building
 - **[talkIR](https://github.com/birdman4512/talkIR)** — Natural language queries over security logs; supports Ollama, Claude, and OpenAI
 - **[SignalSage](https://github.com/birdman4512/SignalSage)** — LLM-generated threat digests and IOC summaries in Slack/Discord
 - **[mesh-medic](https://github.com/birdman4512/mesh-medic)** — Fully offline RAG + LLM over LoRa radio (no internet required)
+- **[forensic-claw](https://github.com/birdman4512/forensic-claw)** — AI agent that selects and runs DFIR tools across submitted evidence, with case-folder logging
 - **[OpenClaw setup](technology/openclaw-setup.md)** — Multi-workspace AI agent architecture for personal, business, and forensic use
 
 ## Other Interests
