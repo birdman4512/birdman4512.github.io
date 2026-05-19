@@ -3,7 +3,7 @@
 
 Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD. I run [QuirkyIT](https://www.quirkyit.com.au), a small IT and security consulting business focused on digital forensics, incident response, and threat intelligence.
 
-**[QRZ Profile](https://www.qrz.com/db/VK4DSB) · [GitHub](https://github.com/birdman4512) · [QuirkyIT](https://www.quirkyit.com.au)**
+**[Blog](blog.md) · [QRZ Profile](https://www.qrz.com/db/VK4DSB) · [GitHub](https://github.com/birdman4512) · [QuirkyIT](https://www.quirkyit.com.au)**
 
 ---
 
