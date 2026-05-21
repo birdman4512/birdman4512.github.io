@@ -1,11 +1,11 @@
 ---
 title: "Creating a network with a TOR transparent Gateway"
-date: 2025-06-06
+date: 2025-08-01
 ---
 
-# Creating a network with a TOR transparent Gateway
-
 I wanted to build myself a network that didn't look like it was my home network. In particular I wanted it to be able to exit somewhere else rather then my home network. 
+
+<!--more-->
 
 Before this, I had setup a network that used my VPN provider to establish a tunnel under my account to what ever location I wanted to exit from and then the network routed all traffic over the VPN, however I have since stopped using my VPN provider and so was looking for an alternative. 
 

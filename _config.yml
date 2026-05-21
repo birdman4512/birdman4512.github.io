@@ -8,5 +8,20 @@ plugins:
 
 future: true
 
+excerpt_separator: <!--more-->
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: default
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: default
+
 feed:
   path: feed.xml
+  excerpt_only: true
