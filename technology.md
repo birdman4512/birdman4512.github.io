@@ -88,7 +88,7 @@ I run a lot of local LLMs via [Ollama](https://ollama.com/) and wire them into p
 
 ## Write-ups & Guides
 
-- [Setting up a TOR Transparent Gateway](technology/tor-transparent-gw.md) — Routing a network segment through TOR using Alpine Linux and iptables
+- [Building a TOR Transparent Gateway](technology/tor-transparent-gw.md) — Routing multiple network segments through TOR with a dual-homed Alpine gateway
 - [OpenClaw Setup](technology/openclaw-setup.md) — Architecture and routing for a multi-workspace AI agent system covering personal, business, forensic, and family use cases
 
 ---
