@@ -1,3 +1,8 @@
+---
+title: "Creating a network with a TOR transparent Gateway"
+date: 2025-06-06
+---
+
 # Creating a network with a TOR transparent Gateway
 
 I wanted to build myself a network that didn't look like it was my home network. In particular I wanted it to be able to exit somewhere else rather then my home network. 
