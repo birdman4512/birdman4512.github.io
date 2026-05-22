@@ -1,3 +1,7 @@
+---
+title: Building a TOR Transparent Gateway
+---
+
 # Building a TOR Transparent Gateway
 
 This page will cover the TOR Transparent Gateway build from scratch (Post Alpine install)
@@ -355,4 +359,4 @@ The result is a network whose only path to the internet is through TOR — and w
 
 ---
 
-Return to [Technology](../technology.md)
+Return to [Technology](../technology.html)

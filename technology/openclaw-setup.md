@@ -1,3 +1,7 @@
+---
+title: "OpenClaw: A Multi-Workspace AI Agent Setup"
+---
+
 # OpenClaw: A Multi-Workspace AI Agent Setup
 
 Most people who use AI assistants end up with one giant context that does everything — personal questions, work tasks, sensitive research, family scheduling — all tangled together. That works fine until it doesn't: business context bleeds into personal conversations, a casual question lands in the middle of a forensic case, or the family assistant says something it really shouldn't.
@@ -156,4 +160,4 @@ A few choices that are less obvious from the structure alone:
 
 ---
 
-Return to [Technology](../technology.md)
+Return to [Technology](../technology.html)

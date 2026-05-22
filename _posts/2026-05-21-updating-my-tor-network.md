@@ -3,7 +3,7 @@ title: "Expanding the TOR Transparent Gateway: Multiple LANs, Routing, and a CTF
 date: 2026-05-20
 ---
  
-[Previously](2025-08-01-setting-up-a-tor-network.md) I built an Alpine-based TOR transparent gateway for a single network that forced all traffic from the network out over TOR. It worked, but it was klunky became: 
+[Previously](/2025/08/01/setting-up-a-tor-network.html) I built an Alpine-based TOR transparent gateway for a single network that forced all traffic from the network out over TOR. It worked, but it was klunky became: 
  
 - It was a weird setup in that it existed in the same network as the actual router. It had a `.2` address and the real router just kinda sat there silenty in the same room with the `.1` address. 
 - Because of the way it was setup, it required asymetric routing if I wanted to access things inside the network from outside.
@@ -17,7 +17,7 @@ date: 2026-05-20
  
 The existing network worked well, however it was time for some improvements to allow me to do some more interesting things on the network, So first, I looked to re-design the network and came up with. 
 
-[<img src="assets/2026-05/new_tor_network.jpg" width="400">](assets/2026-05/new_tor_network.jpg)
+[<img src="/assets/2026-05/new_tor_network.jpg" width="400">](/assets/2026-05/new_tor_network.jpg)
 
 The key changes: The TOR GW is now **dual-homed** and has assumed the `.1` address in each of the networks making routing much easier to manage. 
 

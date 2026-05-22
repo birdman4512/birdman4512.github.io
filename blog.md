@@ -17,4 +17,4 @@ Subscribe via [RSS]({{ "/feed.xml" | relative_url }}).
 {% endfor %}
 
 ---
-Return to [home](index.md)
+Return to [home](index.html)

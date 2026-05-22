@@ -11,7 +11,7 @@ Before this, I had setup a network that used my VPN provider to establish a tunn
 
 I decided to look to see if I could do the same with TOR. Here is what the network looks like
 
-<img src="assets/2026-05/tor_gw_network_design.png" width="250">
+<img src="/assets/2026-05/tor_gw_network_design.png" width="250">
 
 There are a few things to point out for this.
 

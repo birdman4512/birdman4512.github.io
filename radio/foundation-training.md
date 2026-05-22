@@ -1,3 +1,7 @@
+---
+title: Foundation Licence Training
+---
+
 # Overview
 
 This page is where I am gathering everything that I have found helpful when studying for my foundation Radio License
@@ -44,4 +48,4 @@ URL: [https://www.res.net.au/](https://www.res.net.au/)
 A great website with lots of resources about getting into radio.
 
 ---
-Return to [home](../index.md)
+Return to [home](../index.html)

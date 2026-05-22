@@ -1,3 +1,7 @@
+---
+title: Solar Meshtastic Node
+---
+
 # Solar Meshtastic Node
 
 I have been playing around with Metastatic lately and have wanted to see if I might be able to build a solar node to help grow the mesh. 

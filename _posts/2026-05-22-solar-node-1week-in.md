@@ -4,7 +4,7 @@ date: 2026-05-22  # required — must match the YYYY-MM-DD in the filename
 # excerpt: ""     # optional — overrides the auto excerpt for the blog index + RSS
 ---
 
-It has been about a week since I have re-built my meshtastic solar node with the Heltec T114. [Solar Node Build](/radio/solar-meshtastic-node.md). Here are the results of how it has performed over the past week, and what I plan to do next. 
+It has been about a week since I have re-built my meshtastic solar node with the Heltec T114. [Solar Node Build](/radio/solar-meshtastic-node.html). Here are the results of how it has performed over the past week, and what I plan to do next. 
 
 <!--more-->
 
@@ -13,7 +13,7 @@ It has been about a week since I have re-built my meshtastic solar node with the
 At first, I had it attached to some string around a frame in the back yard. This wasn't a great test as it got the sun late in the morning, and then was shaded from the afternoon sun by the house. 
 Instead, I got on the roof to attach it to my VHF/UHF flowerpot antenna to give it some height and get maximum sunshine. 
 
-[<img src="assets/2026-05/PXL_20260516_222949910.jpg" width="400">](assets/2026-05/PXL_20260516_222949910.jpg)
+[<img src="/assets/2026-05/PXL_20260516_222949910.jpg" width="400">](/assets/2026-05/PXL_20260516_222949910.jpg)
 
 ## Battery
 
@@ -34,7 +34,7 @@ Overall, it has performed really well given the weather we have had over the pas
 
 Despite the terrible conditions for solar, the battery has held really well staying around the same level the whole week. It really only saw maybe a few % movement as you can see.
 
-[<img src="assets/2026-05/Screenshot_20260522-130122.png" width="400">](assets/2026-05/Screenshot_20260522-130122.png)
+[<img src="/assets/2026-05/Screenshot_20260522-130122.png" width="400">](/assets/2026-05/Screenshot_20260522-130122.png)
 
 The lowest it got to was 74% @ 5:19am on the 20th, and after two days of sunshine, it has reached back up to 86%. 
 
