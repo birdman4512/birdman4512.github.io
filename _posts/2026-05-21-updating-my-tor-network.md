@@ -17,7 +17,7 @@ date: 2026-05-20
  
 The existing network worked well, however it was time for some improvements to allow me to do some more interesting things on the network, So first, I looked to re-design the network and came up with. 
 
-[<img src="assets/new_tor_network.jpg" width="400">](assets/new_tor_network.jpg)
+[<img src="assets/2026-05/new_tor_network.jpg" width="400">](assets/2026-05/new_tor_network.jpg)
 
 The key changes: The TOR GW is now **dual-homed** and has assumed the `.1` address in each of the networks making routing much easier to manage. 
 
