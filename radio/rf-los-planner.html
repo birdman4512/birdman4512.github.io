@@ -218,7 +218,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-5">BUILD 20260523-5</span>
+      <span class="hdr-tag" title="Build 20260523-6">BUILD 20260523-6</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,7 +307,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-5';
+const BUILD_ID='20260523-6';
 if(!new URLSearchParams(window.location.search).has('v')){
   window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
 }
@@ -457,10 +457,11 @@ function addEdge(aId, bId) {
   // Prevent duplicate edges
   if (S.edges.some(e => (e.aId===aId&&e.bId===bId)||(e.aId===bId&&e.bId===aId))) { toast('Link already exists.',2000); return; }
   if (aId === bId) { toast('Cannot link a node to itself.',2000); return; }
-  const edge = { id: S.nextId++, aId, bId, line: null, result: null, profile: null };
+  const edge = { id: S.nextId++, aId, bId, line: null, hitLine: null, result: null, profile: null };
   S.edges.push(edge);
   const a = S.nodes.find(n=>n.id===aId), b = S.nodes.find(n=>n.id===bId);
   edge.line = L.polyline([[a.lat,a.lng],[b.lat,b.lng]], { color:'#4a6278', weight:2, opacity:.7, dashArray:'5 4' }).addTo(S.map);
+  edge.hitLine = L.polyline([[a.lat,a.lng],[b.lat,b.lng]], { color:'#ffffff', weight:24, opacity:0, interactive:true }).addTo(S.map);
   attachEdgeHandlers(edge);
   renderEdgesPanel();
   document.getElementById('edgeCount').textContent = S.edges.length;
@@ -474,6 +475,7 @@ function removeEdge(id) {
   if (idx < 0) return;
   const e = S.edges[idx];
   if (e.line) S.map.removeLayer(e.line);
+  if (e.hitLine) S.map.removeLayer(e.hitLine);
   S.edges.splice(idx, 1);
   // Clean up paths that used this edge
   S.paths.forEach(p => {
@@ -498,6 +500,7 @@ function redrawEdgeLines() {
   S.edges.forEach(e => {
     const a = S.nodes.find(n=>n.id===e.aId), b = S.nodes.find(n=>n.id===e.bId);
     if (a && b && e.line) e.line.setLatLngs([[a.lat,a.lng],[b.lat,b.lng]]);
+    if (a && b && e.hitLine) e.hitLine.setLatLngs([[a.lat,a.lng],[b.lat,b.lng]]);
   });
 }
 
@@ -529,6 +532,7 @@ function highlightActiveMapView(){
     }else{
       e.line.setStyle(edgeBaseStyle(e));
     }
+    if(e.hitLine) e.hitLine.bringToFront();
   });
 }
 
@@ -777,10 +781,11 @@ function showEdgeCtx(cx,cy,edge){
 }
 
 function attachEdgeHandlers(edge){
-  if(!edge.line) return;
-  edge.line.on('mousemove',e=>handleMapLineHover(edge,e.latlng));
-  edge.line.on('mouseout',hideProfileCursor);
-  edge.line.on('contextmenu',e=>{
+  const target=edge.hitLine||edge.line;
+  if(!target) return;
+  target.on('mousemove',e=>handleMapLineHover(edge,e.latlng));
+  target.on('mouseout',hideProfileCursor);
+  target.on('contextmenu',e=>{
     L.DomEvent.preventDefault(e.originalEvent);
     L.DomEvent.stopPropagation(e.originalEvent);
     showEdgeCtx(e.originalEvent.clientX,e.originalEvent.clientY,edge);
@@ -1562,8 +1567,9 @@ function loadFromHash(){
     data.edges.forEach(ed=>{
       const a=S.nodes.find(n=>n.id===ed.aId),b=S.nodes.find(n=>n.id===ed.bId);
       if(!a||!b) return;
-      const edge={id:ed.id,aId:ed.aId,bId:ed.bId,line:null,result:null,profile:null};
+      const edge={id:ed.id,aId:ed.aId,bId:ed.bId,line:null,hitLine:null,result:null,profile:null};
       edge.line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#4a6278',weight:2,opacity:.7,dashArray:'5 4'}).addTo(S.map);
+      edge.hitLine=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#ffffff',weight:24,opacity:0,interactive:true}).addTo(S.map);
       attachEdgeHandlers(edge);
       S.edges.push(edge);
     });
