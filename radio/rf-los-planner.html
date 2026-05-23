@@ -902,6 +902,8 @@ async function runAnalysis(){
   const freq=parseFloat(document.getElementById('inpFreq').value)||900;
   const K=parseFloat(document.getElementById('inpK').value)||1.333;
   const N=80;
+  const MAX_TERRAIN_ERRORS=2;
+  let terrainErrors=0;
   toast('Analysing…');
   try{
     for(let ei=0;ei<S.edges.length;ei++){
@@ -914,11 +916,19 @@ async function runAnalysis(){
       try{
         elevs=await fetchProfile(a.lat,a.lng,b.lat,b.lng,N);
       }catch(err){
+        terrainErrors++;
         e.result={dist,status:'error',error:err.message||'Terrain lookup failed'};
         e.profile=null;
         if(e.line) e.line.setStyle({color:'#e74c3c',weight:2,opacity:.8,dashArray:'3 5'});
+        renderResults();
+        renderEdgesPanel();
+        if(terrainErrors>=MAX_TERRAIN_ERRORS){
+          toast(`Stopped after ${terrainErrors} terrain lookup failures. Wait a bit, then try Analyse again.`,6000);
+          break;
+        }
         continue;
       }
+      terrainErrors=0;
       const dists=elevs.map((_,s)=>dist*s/N);
 
       // Ground elevation from profile endpoints (same dataset = consistent datum)
@@ -948,7 +958,7 @@ async function runAnalysis(){
       if(e.line) e.line.setStyle({color:col,weight:3,opacity:.9,dashArray:''});
     }
 
-    hideToast();
+    if(terrainErrors<MAX_TERRAIN_ERRORS) hideToast();
     renderResults();
     renderEdgesPanel();
     renderChartTabs();
