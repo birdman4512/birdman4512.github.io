@@ -4,17 +4,7 @@ title: Technology & Security
 
 # Technology & Security
 
-## Consulting
-
-My IT and security consulting work covers three areas:
-
-**Cyber Security** — Digital forensics and incident response (DFIR), threat intelligence, detection engineering, and defensive security. Most of the open-source projects on this page were built to solve real problems encountered in that work.
-
-**AI & Business Integration** — Helping businesses get practical value from AI. This means identifying the right workflows to automate, selecting and deploying appropriate models (local or cloud), and building integrations that fit how a business actually operates — not just demos. Work includes internal tooling with LLMs, RAG pipelines over business documents, and connecting AI to existing systems.
-
-**General IT** — Infrastructure, networking, and systems support for small and medium businesses.
-
-A recurring theme is using local and cloud LLMs to make work faster and more effective. See the [AI & LLM section](#ai--llm) below for the technical detail.
+Open-source tools, write-ups, and notes covering DFIR, threat intelligence, detection engineering, and AI-assisted security tooling. Local and cloud LLMs run through most of it.
 
 ---
 
@@ -93,7 +83,7 @@ I run a lot of local LLMs via [Ollama](https://ollama.com/) and wire them into p
 ## Write-ups & Guides
 
 - [Building a TOR Transparent Gateway](technology/tor-transparent-gw.html) — Routing multiple network segments through TOR with a dual-homed Alpine gateway
-- [OpenClaw Setup](technology/openclaw-setup.html) — Architecture and routing for a multi-workspace AI agent system covering personal, business, forensic, and family use cases
+- [OpenClaw Setup](technology/openclaw-setup.html) — Architecture and routing for a multi-workspace AI agent system covering personal, work, forensic, and family contexts
 
 ---
 

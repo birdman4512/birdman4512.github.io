@@ -4,7 +4,7 @@ title: Home
 
 # Dean Bird — VK4DSB
 
-Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD. I work in IT and security consulting, focused on digital forensics, incident response, and threat intelligence.
+Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD. Most of my work is in digital forensics, incident response, and threat intelligence.
 
 **[Blog](blog.html) · [Radio](radio.html) · [Technology](technology.html)** · [QRZ ↗](https://www.qrz.com/db/VK4DSB) · [GitHub ↗](https://github.com/birdman4512)
 
@@ -33,7 +33,7 @@ Open-source tools and write-ups covering incident response, threat intelligence,
 
 ## AI & LLM
 
-AI runs through most of the projects above — local Ollama models, RAG pipelines, and LLM tooling are core, not gimmicks. The one architecture piece worth its own write-up is **[OpenClaw setup](technology/openclaw-setup.html)** — a multi-workspace AI agent architecture covering personal, business, and forensic use.
+AI runs through most of the projects above — local Ollama models, RAG pipelines, and LLM tooling are core, not gimmicks. The one architecture piece worth its own write-up is **[OpenClaw setup](technology/openclaw-setup.html)** — a multi-workspace AI agent architecture covering personal, work, and forensic contexts.
 
 ## Latest from the Blog
 
