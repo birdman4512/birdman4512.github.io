@@ -218,7 +218,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-6">BUILD 20260523-6</span>
+      <span class="hdr-tag" title="Build 20260523-7">BUILD 20260523-7</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,7 +307,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-6';
+const BUILD_ID='20260523-7';
 if(!new URLSearchParams(window.location.search).has('v')){
   window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
 }
@@ -615,6 +615,13 @@ function removePath(id) {
   renderChartTabs();
   highlightActiveMapView();
   document.getElementById('pathCount').textContent = S.paths.length;
+}
+
+function pathHasAnalysedProfiles(path){
+  return !!path&&path.nodeIds.slice(0,-1).every((id,i)=>{
+    const nextId=path.nodeIds[i+1];
+    return S.edges.some(e=>e.profile&&((e.aId===id&&e.bId===nextId)||(e.aId===nextId&&e.bId===id)));
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -960,6 +967,7 @@ async function runAnalysis(){
   const N=80;
   const MAX_TERRAIN_ERRORS=2;
   let terrainErrors=0;
+  const preferredView=S.activeView?{...S.activeView}:null;
   toast('Analysing…');
   try{
     for(let ei=0;ei<S.edges.length;ei++){
@@ -1018,13 +1026,18 @@ async function runAnalysis(){
     renderEdgesPanel();
     renderChartTabs();
 
-    // Default view: first fully analysed path if any, otherwise first analysed edge.
-    const analysedPath=S.paths.find(p=>p.nodeIds.slice(0,-1).every((id,i)=>{
-      const nextId=p.nodeIds[i+1];
-      return S.edges.some(e=>e.profile&&((e.aId===id&&e.bId===nextId)||(e.aId===nextId&&e.bId===id)));
-    }));
+    // Preserve the current chart selection when it is still valid.
+    const preferredPath=preferredView?.type==='path'?S.paths.find(p=>p.id===preferredView.id):null;
+    const preferredEdge=preferredView?.type==='edge'?S.edges.find(e=>e.id===preferredView.id&&e.profile):null;
+    const analysedPath=S.paths.find(pathHasAnalysedProfiles);
     const analysedEdge=S.edges.find(e=>e.profile);
-    if(analysedPath){
+    if(preferredPath&&pathHasAnalysedProfiles(preferredPath)){
+      S.activeView={type:'path',id:preferredPath.id};
+      showPathProfile(preferredPath.id);
+    } else if(preferredEdge){
+      S.activeView={type:'edge',id:preferredEdge.id};
+      showEdgeProfile(preferredEdge.id);
+    } else if(analysedPath){
       S.activeView={type:'path',id:analysedPath.id};
       showPathProfile(analysedPath.id);
     } else if(analysedEdge){
