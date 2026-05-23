@@ -545,13 +545,14 @@ function invalidateEdgesForNode(nodeId) {
   });
   if (!changed) return;
 
+  // Clear stale chart but keep activeView so runAnalysis can restore the same view.
   const active = S.activeView;
   if (active?.type === 'edge') {
     const edge = S.edges.find(e => e.id === active.id);
-    if (edge && (edge.aId === nodeId || edge.bId === nodeId)) { S.activeView = null; clearCanvas(); }
+    if (edge && (edge.aId === nodeId || edge.bId === nodeId)) clearCanvas();
   } else if (active?.type === 'path') {
     const path = S.paths.find(p => p.id === active.id);
-    if (path?.nodeIds.includes(nodeId)) { S.activeView = null; clearCanvas(); }
+    if (path?.nodeIds.includes(nodeId)) clearCanvas();
   }
 
   renderResults();
