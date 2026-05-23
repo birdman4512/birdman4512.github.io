@@ -16,7 +16,7 @@ OpenClaw is my attempt to solve that properly. Rather than one assistant that do
 My private, direct assistant. Handles everyday coordination, general help, and anything I don't want mixed into work. Concise and direct — it doesn't need to write like a business report. This is the default if nothing else fits.
 
 ### Business Claw
-Focused on [QuirkyIT](https://www.quirkyit.com.au) work — business planning, client-facing documents, scopes and proposals, and defensive OSINT. The business context here is kept clean and reusable across sessions, which matters when you're working on proposals or packaging services. If a piece of work turns evidence-heavy or starts looking more like a DFIR case, it hands off to Forensic Claw rather than trying to handle it inline.
+Focused on consulting work — business planning, client-facing documents, scopes and proposals, and defensive OSINT. The business context here is kept clean and reusable across sessions, which matters when you're working on proposals or packaging services. If a piece of work turns evidence-heavy or starts looking more like a DFIR case, it hands off to Forensic Claw rather than trying to handle it inline.
 
 ### Forensic Claw
 This one has the strictest operating rules. It's built for lawful DFIR and intrusion analysis — evidence triage, log analysis, disk images, memory dumps, PCAPs, and building timelines that hold up to scrutiny. The key behaviour here is separating confirmed facts from inferences and not guessing. A forensic report that blurs those lines is worse than no report at all, so the workspace is explicitly tuned to stay careful.

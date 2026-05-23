@@ -4,9 +4,9 @@ title: Technology & Security
 
 # Technology & Security
 
-## QuirkyIT
+## Consulting
 
-[QuirkyIT](https://www.quirkyit.com.au) is my IT and security consulting business covering three areas:
+My IT and security consulting work covers three areas:
 
 **Cyber Security** — Digital forensics and incident response (DFIR), threat intelligence, detection engineering, and defensive security. Most of the open-source projects on this page were built to solve real problems encountered in that work.
 

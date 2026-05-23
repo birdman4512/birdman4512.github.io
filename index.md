@@ -4,9 +4,9 @@ title: Home
 
 # Dean Bird — VK4DSB
 
-Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD. I run [QuirkyIT](https://www.quirkyit.com.au), a small IT and security consulting business focused on digital forensics, incident response, and threat intelligence.
+Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD. I work in IT and security consulting, focused on digital forensics, incident response, and threat intelligence.
 
-**[Blog](blog.html) · [QRZ Profile](https://www.qrz.com/db/VK4DSB) · [GitHub](https://github.com/birdman4512) · [QuirkyIT](https://www.quirkyit.com.au)**
+**[Blog](blog.html) · [QRZ Profile](https://www.qrz.com/db/VK4DSB) · [GitHub](https://github.com/birdman4512)**
 
 ---
 
