@@ -218,7 +218,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-2">BUILD 20260523-2</span>
+      <span class="hdr-tag" title="Build 20260523-3">BUILD 20260523-3</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,7 +307,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-2';
+const BUILD_ID='20260523-3';
 if(!new URLSearchParams(window.location.search).has('v')){
   window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
 }
@@ -330,6 +330,8 @@ const S = {
   _lastElevRequest: 0,
   _openMeteoCooldownUntil: 0,
   _lastFallbackElevRequest: 0,
+  hoverMarker: null,
+  profileHover: null,
   _dragId: null
 };
 
@@ -1122,6 +1124,8 @@ function showPathProfile(pathId){
     const aId=path.nodeIds[i],bId=path.nodeIds[i+1];
     const e=S.edges.find(e2=>(e2.aId===aId&&e2.bId===bId)||(e2.aId===bId&&e2.bId===aId));
     if(!e?.profile){
+      S.profileHover=null;
+      hideProfileHoverMarker();
       toast(`Link ${S.nodes.find(n=>n.id===aId)?.name} ↔ ${S.nodes.find(n=>n.id===bId)?.name} not yet analysed. Run Analyse first.`,3000);
       return;
     }
@@ -1158,6 +1162,10 @@ function drawProfile({elevs,dists,dist,aH,bH,freq,K,N,result,labels}){
   const{ctx,W,H}=setupCanvas();
   const PAD={l:46,r:12,t:14,b:22};
   const pw=W-PAD.l-PAD.r,ph=H-PAD.t-PAD.b;
+  const activeEdge=S.activeView?.type==='edge'?S.edges.find(e=>e.id===S.activeView.id):null;
+  if(activeEdge?.profile){
+    S.profileHover={PAD,totalDist:dist,segments:[{start:0,dist,a:activeEdge.profile.a,b:activeEdge.profile.b}]};
+  }
 
   const eff=elevs.map((e,s)=>s===0||s===N?e:e+bulge(dists[s],dist-dists[s],K));
   const losH=s=>aH+(bH-aH)*(s/N);
@@ -1186,9 +1194,11 @@ function drawPathProfile(hops,names){
   // Stitch samples
   const totalDist=hops.reduce((s,h)=>s+h.e.profile.dist,0);
   const samples=[];
+  const hoverSegments=[];
   let cumDist=0;
   hops.forEach((h,hi)=>{
     const{elevs,dists,dist,aH,bH,K,N}=h.e.profile;
+    hoverSegments.push({start:cumDist,dist,a:h.flip?h.e.profile.b:h.e.profile.a,b:h.flip?h.e.profile.a:h.e.profile.b});
     const eArr=h.flip?[...elevs].reverse():elevs;
     const dArr=h.flip?dists.map(d=>dist-d).reverse():dists;
     const hAstart=h.flip?bH:aH, hAend=h.flip?aH:bH;
@@ -1201,6 +1211,7 @@ function drawPathProfile(hops,names){
     }
     cumDist+=dist;
   });
+  S.profileHover={PAD,totalDist,segments:hoverSegments};
 
   const allVals=samples.flatMap(s=>[s.eff,s.los]);
   const minV=Math.min(...allVals)-5,maxV=Math.max(...allVals)+15,rng=maxV-minV||1;
@@ -1350,6 +1361,53 @@ function drawXAxis(ctx,PAD,pw,H,totalDist){
 }
 function hexAlpha(hex,alpha){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return `rgba(${r},${g},${b},${alpha})`;}
 
+function interpLatLng(a,b,t){
+  return [a.lat+(b.lat-a.lat)*t,a.lng+(b.lng-a.lng)*t];
+}
+
+function ensureProfileHoverMarker(){
+  if(S.hoverMarker) return S.hoverMarker;
+  S.hoverMarker=L.circleMarker([0,0],{
+    radius:8,
+    color:'#ffffff',
+    weight:2,
+    fillColor:'#ff2bd6',
+    fillOpacity:.9,
+    opacity:1,
+    pane:'markerPane'
+  }).addTo(S.map);
+  S.hoverMarker.bindTooltip('Profile cursor',{direction:'top',offset:[0,-10]});
+  return S.hoverMarker;
+}
+
+function hideProfileHoverMarker(){
+  if(S.hoverMarker) S.hoverMarker.setStyle({opacity:0,fillOpacity:0});
+}
+
+function handleProfileHover(ev){
+  if(!S.profileHover||!S.map) return;
+  const canvas=document.getElementById('profileCanvas');
+  const rect=canvas.getBoundingClientRect();
+  const x=ev.clientX-rect.left;
+  const {PAD,totalDist,segments}=S.profileHover;
+  const pw=canvas.offsetWidth-PAD.l-PAD.r;
+  if(x<PAD.l||x>PAD.l+pw){hideProfileHoverMarker();return;}
+  const dist=((x-PAD.l)/pw)*totalDist;
+  const seg=segments.find(s=>dist>=s.start&&dist<=s.start+s.dist)||segments[segments.length-1];
+  if(!seg) return;
+  const t=Math.max(0,Math.min(1,(dist-seg.start)/seg.dist));
+  const marker=ensureProfileHoverMarker();
+  marker.setLatLng(interpLatLng(seg.a,seg.b,t));
+  marker.setStyle({opacity:1,fillOpacity:.9});
+  marker.bringToFront();
+}
+
+function initProfileHover(){
+  const canvas=document.getElementById('profileCanvas');
+  canvas.addEventListener('mousemove',handleProfileHover);
+  canvas.addEventListener('mouseleave',hideProfileHoverMarker);
+}
+
 function clearCanvas(){
   const canvas=document.getElementById('profileCanvas');
   const ctx=canvas.getContext('2d');
@@ -1357,6 +1415,8 @@ function clearCanvas(){
   ctx.fillStyle='#0b0f17';ctx.fillRect(0,0,canvas.width,canvas.height);
   document.getElementById('chartTitle').textContent='TERRAIN PROFILE';
   document.getElementById('chartTabs').innerHTML='';
+  S.profileHover=null;
+  hideProfileHoverMarker();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1471,6 +1531,7 @@ function hideToast(){document.getElementById('toast').style.display='none';}
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('load',()=>{
   initMap();
+  initProfileHover();
   renderNodeList();
   setTimeout(()=>S.map.invalidateSize(),200);
   setTimeout(()=>{S.map.invalidateSize();loadFromHash();syncPresetFromFreq();maybeShowHelp();},600);
