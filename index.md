@@ -6,7 +6,7 @@ title: Home
 
 Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD. I work in IT and security consulting, focused on digital forensics, incident response, and threat intelligence.
 
-**[Blog](blog.html) · [QRZ Profile](https://www.qrz.com/db/VK4DSB) · [GitHub](https://github.com/birdman4512)**
+**[Blog](blog.html) · [Radio](radio.html) · [Technology](technology.html)** · [QRZ ↗](https://www.qrz.com/db/VK4DSB) · [GitHub ↗](https://github.com/birdman4512)
 
 ---
 
@@ -15,28 +15,30 @@ Amateur radio operator, IT security professional, and tinkerer based in Bellmere
 Licensed as VK4DSB in QG62. I run a Xiegu X6100 and am active on FT8, APRS, and SSTV. Current projects include a solar-powered Meshtastic relay node.
 
 - **[Ham Dashboard](radio/hamdashboard/)** — Live propagation, APRS, FT8, BOM radar, and DX tracking in one view
+- **[RF Line of Sight Planner](radio/rf-los-planner.html)** — Interactive map for planning RF line-of-sight paths between locations
 - **[Radio Setup](radio/setup.html)** — Software and equipment for the X6100
-- **[Projects & Guides](radio.html)** — Antenna builds, Meshtastic nodes, foundation training, and more
+
+→ [All radio projects & guides](radio.html)
 
 ## Technology & Security
 
-Open-source tools and write-ups covering incident response, threat intelligence, and network security. See the full list on the [Technology page](technology.html).
+Open-source tools and write-ups covering incident response, threat intelligence, and network security. Most use local or cloud LLMs as a core component.
 
-- **[talkIR](https://github.com/birdman4512/talkIR)** — Query your IR log data in plain English using an LLM
-- **[SignalSage](https://github.com/birdman4512/SignalSage)** — Automated threat intelligence enrichment bot for Slack and Discord
-- **[forensic-claw](https://github.com/birdman4512/forensic-claw)** — Dockerised DFIR workstation with an AI agent that drives Sleuth Kit, Volatility, Plaso, and more
-- **[mesh-medic](https://github.com/birdman4512/mesh-medic)** — Offline AI survival assistant over Meshtastic radio networks
+- **[talkIR](https://github.com/birdman4512/talkIR)** — Natural-language queries over IR log data; supports Ollama, Claude, and OpenAI
+- **[SignalSage](https://github.com/birdman4512/SignalSage)** — Threat-intel enrichment bot for Slack and Discord with LLM-generated digests
+- **[forensic-claw](https://github.com/birdman4512/forensic-claw)** — Dockerised DFIR workstation with an AI agent driving Sleuth Kit, Volatility, Plaso, and more
+- **[mesh-medic](https://github.com/birdman4512/mesh-medic)** — Fully offline RAG + LLM over LoRa radio for off-grid use
+
+→ [All technology write-ups & projects](technology.html)
 
 ## AI & LLM
 
-I tinker a lot with local and cloud LLMs — running models via Ollama, building RAG pipelines, and wiring AI into practical tools. Most of my recent projects use LLMs as a core component rather than a gimmick.
+AI runs through most of the projects above — local Ollama models, RAG pipelines, and LLM tooling are core, not gimmicks. The one architecture piece worth its own write-up is **[OpenClaw setup](technology/openclaw-setup.html)** — a multi-workspace AI agent architecture covering personal, business, and forensic use.
 
-- **[talkIR](https://github.com/birdman4512/talkIR)** — Natural language queries over security logs; supports Ollama, Claude, and OpenAI
-- **[SignalSage](https://github.com/birdman4512/SignalSage)** — LLM-generated threat digests and IOC summaries in Slack/Discord
-- **[mesh-medic](https://github.com/birdman4512/mesh-medic)** — Fully offline RAG + LLM over LoRa radio (no internet required)
-- **[forensic-claw](https://github.com/birdman4512/forensic-claw)** — AI agent that selects and runs DFIR tools across submitted evidence, with case-folder logging
-- **[OpenClaw setup](technology/openclaw-setup.html)** — Multi-workspace AI agent architecture for personal, business, and forensic use
+## Latest from the Blog
 
-## Other Interests
+{% for post in site.posts limit:3 %}
+- **{{ post.date | date: "%Y-%m-%d" }}** — [{{ post.title }}]({{ post.url | relative_url }})
+{% endfor %}
 
-Gardening and making things work together that probably shouldn't.
+→ [All posts](blog.html)
