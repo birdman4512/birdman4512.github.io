@@ -316,6 +316,10 @@ const S = {
   nextId: 1,
   activeView: null, // {type:'edge'|'path', id}
   elevCache: {},
+  profileCache: {},
+  _analysing: false,
+  _elevQueue: Promise.resolve(),
+  _lastElevRequest: 0,
   _dragId: null
 };
 
@@ -767,9 +771,30 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 async function openMeteoElev(lats,lngs){
   const url=`https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lngs.join(',')}`;
-  const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return (await r.json()).elevation;
+  const job=S._elevQueue.catch(()=>{}).then(async()=>{
+    const sinceLast=Date.now()-S._lastElevRequest;
+    if(sinceLast<350) await sleep(350-sinceLast);
+    S._lastElevRequest=Date.now();
+    return requestOpenMeteoElev(url);
+  });
+  S._elevQueue=job.catch(()=>{});
+  return job;
+}
+
+async function requestOpenMeteoElev(url){
+  for(let attempt=0;attempt<4;attempt++){
+    const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
+    if(r.ok) return (await r.json()).elevation;
+    if(r.status!==429) throw new Error(`Elevation lookup failed (HTTP ${r.status})`);
+    const retryAfter=Number(r.headers.get('Retry-After'));
+    const waitMs=Number.isFinite(retryAfter)&&retryAfter>0 ? retryAfter*1000 : [1500,3500,7000,12000][attempt];
+    if(attempt<3){
+      toast(`Elevation service is rate limiting requests. Retrying in ${Math.ceil(waitMs/1000)}s...`);
+      await sleep(waitMs);
+      continue;
+    }
+    throw new Error('Elevation service rate limit reached. Please wait a minute and run Analyse again.');
+  }
 }
 
 async function fetchElevSingle(lat,lng){
@@ -806,6 +831,8 @@ function updateAmslDisplay(node){
 }
 
 async function fetchProfile(lat1,lng1,lat2,lng2,N=80){
+  const profileKey=[lat1,lng1,lat2,lng2,N].map(v=>Number(v).toFixed(5)).join(',');
+  if(S.profileCache[profileKey]) return [...S.profileCache[profileKey]];
   const lats=[],lngs=[];
   for(let i=0;i<=N;i++){const t=i/N;lats.push((lat1+(lat2-lat1)*t).toFixed(5));lngs.push((lng1+(lng2-lng1)*t).toFixed(5));}
   const CHUNK=100; const elevs=[];
@@ -817,6 +844,7 @@ async function fetchProfile(lat1,lng1,lat2,lng2,N=80){
     }
     batch.forEach(v=>elevs.push(Number(v)));
   }
+  S.profileCache[profileKey]=[...elevs];
   return elevs;
 }
 
@@ -837,78 +865,83 @@ function fresnel1(d1,d2,fMHz){const lam=3e8/(fMHz*1e6);return Math.sqrt(lam*d1*d
 //  ANALYSIS  —  runs on every edge
 // ═══════════════════════════════════════════════════════════
 async function runAnalysis(){
+  if(S._analysing){toast('Analysis is already running. Please wait for it to finish.',2500);return;}
   if(S.nodes.length<2||S.edges.length<1){toast('Add at least 2 nodes and 1 link.',3000);return;}
+  S._analysing=true;
   const freq=parseFloat(document.getElementById('inpFreq').value)||900;
   const K=parseFloat(document.getElementById('inpK').value)||1.333;
   const N=80;
   toast('Analysing…');
+  try{
+    for(let ei=0;ei<S.edges.length;ei++){
+      const e=S.edges[ei];
+      const a=S.nodes.find(n=>n.id===e.aId),b=S.nodes.find(n=>n.id===e.bId);
+      if(!a||!b) continue;
+      toast(`Fetching terrain: ${a.name} ↔ ${b.name} (${ei+1}/${S.edges.length})`);
+      const dist=haversine(a.lat,a.lng,b.lat,b.lng);
+      let elevs;
+      try{
+        elevs=await fetchProfile(a.lat,a.lng,b.lat,b.lng,N);
+      }catch(err){
+        e.result={dist,status:'error',error:err.message||'Terrain lookup failed'};
+        e.profile=null;
+        if(e.line) e.line.setStyle({color:'#e74c3c',weight:2,opacity:.8,dashArray:'3 5'});
+        continue;
+      }
+      const dists=elevs.map((_,s)=>dist*s/N);
 
-  for(let ei=0;ei<S.edges.length;ei++){
-    const e=S.edges[ei];
-    const a=S.nodes.find(n=>n.id===e.aId),b=S.nodes.find(n=>n.id===e.bId);
-    if(!a||!b) continue;
-    toast(`Fetching terrain: ${a.name} ↔ ${b.name} (${ei+1}/${S.edges.length})`);
-    const dist=haversine(a.lat,a.lng,b.lat,b.lng);
-    let elevs;
-    try{
-      elevs=await fetchProfile(a.lat,a.lng,b.lat,b.lng,N);
-    }catch(err){
-      e.result={dist,status:'error',error:err.message||'Terrain lookup failed'};
-      e.profile=null;
-      if(e.line) e.line.setStyle({color:'#e74c3c',weight:2,opacity:.8,dashArray:'3 5'});
-      continue;
+      // Ground elevation from profile endpoints (same dataset = consistent datum)
+      const aGnd=elevs[0], bGnd=elevs[N];
+      a.elev=aGnd; updateElevDisplay(a);
+      b.elev=bGnd; updateElevDisplay(b);
+
+      // Antenna tip = ground + antenna height
+      const aH=aGnd+a.antH, bH=bGnd+b.antH;
+
+      let minLosClear=Infinity,minFzClear=Infinity;
+      for(let s=1;s<N;s++){
+        const d1=dists[s],d2=dist-dists[s],t=s/N;
+        const eff=elevs[s]+bulge(d1,d2,K);
+        const los=aH+(bH-aH)*t;
+        const clear=los-eff;
+        if(clear<minLosClear) minLosClear=clear;
+        const fz=fresnel1(d1,d2,freq);
+        if(clear-fz<minFzClear) minFzClear=clear-fz;
+      }
+      const status=minLosClear<=0?'blocked':minFzClear<=0?'marginal':'clear';
+      e.result={dist,minLosClear,minFzClear,status};
+      e.profile={elevs,dists,dist,aH,bH,a,b,freq,K,N};
+
+      // Colour the line on map
+      const col=status==='clear'?'#2ecc71':status==='marginal'?'#f39c12':'#e74c3c';
+      if(e.line) e.line.setStyle({color:col,weight:3,opacity:.9,dashArray:''});
     }
-    const dists=elevs.map((_,s)=>dist*s/N);
 
-    // Ground elevation from profile endpoints (same dataset = consistent datum)
-    const aGnd=elevs[0], bGnd=elevs[N];
-    a.elev=aGnd; updateElevDisplay(a);
-    b.elev=bGnd; updateElevDisplay(b);
+    hideToast();
+    renderResults();
+    renderEdgesPanel();
+    renderChartTabs();
 
-    // Antenna tip = ground + antenna height
-    const aH=aGnd+a.antH, bH=bGnd+b.antH;
-
-    let minLosClear=Infinity,minFzClear=Infinity;
-    for(let s=1;s<N;s++){
-      const d1=dists[s],d2=dist-dists[s],t=s/N;
-      const eff=elevs[s]+bulge(d1,d2,K);
-      const los=aH+(bH-aH)*t;
-      const clear=los-eff;
-      if(clear<minLosClear) minLosClear=clear;
-      const fz=fresnel1(d1,d2,freq);
-      if(clear-fz<minFzClear) minFzClear=clear-fz;
+    // Default view: first fully analysed path if any, otherwise first analysed edge.
+    const analysedPath=S.paths.find(p=>p.nodeIds.slice(0,-1).every((id,i)=>{
+      const nextId=p.nodeIds[i+1];
+      return S.edges.some(e=>e.profile&&((e.aId===id&&e.bId===nextId)||(e.aId===nextId&&e.bId===id)));
+    }));
+    const analysedEdge=S.edges.find(e=>e.profile);
+    if(analysedPath){
+      S.activeView={type:'path',id:analysedPath.id};
+      showPathProfile(analysedPath.id);
+    } else if(analysedEdge){
+      S.activeView={type:'edge',id:analysedEdge.id};
+      showEdgeProfile(analysedEdge.id);
+    } else {
+      S.activeView=null;
+      clearCanvas();
     }
-    const status=minLosClear<=0?'blocked':minFzClear<=0?'marginal':'clear';
-    e.result={dist,minLosClear,minFzClear,status};
-    e.profile={elevs,dists,dist,aH,bH,a,b,freq,K,N};
-
-    // Colour the line on map
-    const col=status==='clear'?'#2ecc71':status==='marginal'?'#f39c12':'#e74c3c';
-    if(e.line) e.line.setStyle({color:col,weight:3,opacity:.9,dashArray:''});
+    renderPathsPanel();
+  }finally{
+    S._analysing=false;
   }
-
-  hideToast();
-  renderResults();
-  renderEdgesPanel();
-  renderChartTabs();
-
-  // Default view: first fully analysed path if any, otherwise first analysed edge.
-  const analysedPath=S.paths.find(p=>p.nodeIds.slice(0,-1).every((id,i)=>{
-    const nextId=p.nodeIds[i+1];
-    return S.edges.some(e=>e.profile&&((e.aId===id&&e.bId===nextId)||(e.aId===nextId&&e.bId===id)));
-  }));
-  const analysedEdge=S.edges.find(e=>e.profile);
-  if(analysedPath){
-    S.activeView={type:'path',id:analysedPath.id};
-    showPathProfile(analysedPath.id);
-  } else if(analysedEdge){
-    S.activeView={type:'edge',id:analysedEdge.id};
-    showEdgeProfile(analysedEdge.id);
-  } else {
-    S.activeView=null;
-    clearCanvas();
-  }
-  renderPathsPanel();
 }
 
 // ═══════════════════════════════════════════════════════════
