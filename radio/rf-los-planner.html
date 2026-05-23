@@ -366,9 +366,8 @@ function makeMarker(node) {
   });
   marker.on('dragend', () => {
     node.elev = null; invalidateEdgesForNode(node.id); fetchElev(node);
-    // Re-run edges involving this node
-    const affected = S.edges.filter(e => e.aId === node.id || e.bId === node.id);
-    if (affected.length > 0 && S.edges.some(e => e.result)) runAnalysis();
+    // Re-analyse all links whenever a node is dragged
+    if (S.edges.length > 0) runAnalysis();
   });
   marker.on('contextmenu', e => { L.DomEvent.preventDefault(e.originalEvent); L.DomEvent.stopPropagation(e.originalEvent); showNodeCtx(e.originalEvent.clientX, e.originalEvent.clientY, node); });
   marker.bindTooltip(node.name, { permanent: false, direction: 'top', offset: [0,-14] });
@@ -1294,7 +1293,7 @@ function loadFromHash(){
   if(!hash) return;
   try{
     const data=JSON.parse(decodeURIComponent(atob(hash)));
-    document.getElementById('inpFreq').value=data.freq||900;
+    document.getElementById('inpFreq').value=data.freq||915;
     document.getElementById('inpK').value=data.k||'1.333';
     S.nextId=data.nextId||1;
     // Restore nodes
