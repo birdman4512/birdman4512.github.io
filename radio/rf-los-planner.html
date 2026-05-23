@@ -320,6 +320,7 @@ const S = {
   _analysing: false,
   _elevQueue: Promise.resolve(),
   _lastElevRequest: 0,
+  _openMeteoCooldownUntil: 0,
   _lastOpenTopoRequest: 0,
   _dragId: null
 };
@@ -771,15 +772,22 @@ function var_accent(){return getComputedStyle(document.documentElement).getPrope
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 async function getElevationBatch(lats,lngs){
-  try{
-    return await openMeteoElev(lats,lngs);
-  }catch(primaryErr){
-    toast('Open-Meteo elevation unavailable. Trying Open Topo Data...');
+  let primaryErr=null;
+  if(Date.now()<S._openMeteoCooldownUntil){
+    toast('Open-Meteo is rate limited. Using Open Topo Data...');
+  }else{
     try{
-      return await openTopoDataElev(lats,lngs);
-    }catch(fallbackErr){
-      throw new Error(`${primaryErr.message}; Open Topo Data fallback failed: ${fallbackErr.message}`);
+      return await openMeteoElev(lats,lngs);
+    }catch(err){
+      primaryErr=err;
+      toast('Open-Meteo elevation unavailable. Trying Open Topo Data...');
     }
+  }
+  try{
+    return await openTopoDataElev(lats,lngs);
+  }catch(fallbackErr){
+    const primaryMsg=primaryErr?.message||'Open-Meteo skipped while rate limited';
+    throw new Error(`${primaryMsg}; Open Topo Data fallback failed: ${fallbackErr.message}`);
   }
 }
 
@@ -796,19 +804,15 @@ async function openMeteoElev(lats,lngs){
 }
 
 async function requestOpenMeteoElev(url){
-  for(let attempt=0;attempt<4;attempt++){
-    const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
-    if(r.ok) return (await r.json()).elevation;
-    if(r.status!==429) throw new Error(`Elevation lookup failed (HTTP ${r.status})`);
+  const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
+  if(r.ok) return (await r.json()).elevation;
+  if(r.status===429){
     const retryAfter=Number(r.headers.get('Retry-After'));
-    const waitMs=Number.isFinite(retryAfter)&&retryAfter>0 ? retryAfter*1000 : [1500,3500,7000,12000][attempt];
-    if(attempt<3){
-      toast(`Elevation service is rate limiting requests. Retrying in ${Math.ceil(waitMs/1000)}s...`);
-      await sleep(waitMs);
-      continue;
-    }
-    throw new Error('Elevation service rate limit reached. Please wait a minute and run Analyse again.');
+    const cooldownMs=Number.isFinite(retryAfter)&&retryAfter>0 ? retryAfter*1000 : 60000;
+    S._openMeteoCooldownUntil=Date.now()+cooldownMs;
+    throw new Error('Open-Meteo rate limit reached');
   }
+  throw new Error(`Elevation lookup failed (HTTP ${r.status})`);
 }
 
 async function openTopoDataElev(lats,lngs){
