@@ -86,6 +86,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 .edges-panel::-webkit-scrollbar{width:3px}
 .edges-panel::-webkit-scrollbar-thumb{background:var(--border)}
 .edge-row{display:flex;align-items:center;gap:5px;padding:4px 10px;border-bottom:1px solid rgba(30,45,66,.5);font-size:11px}
+.edge-row.active{background:rgba(0,200,240,.08)}
 .edge-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .edge-label{flex:1;color:var(--text)}
 .edge-status{font-family:'Share Tech Mono',monospace;font-size:9px}
@@ -99,6 +100,8 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 .path-row{display:flex;align-items:center;gap:5px;padding:4px 10px;border-bottom:1px solid rgba(30,45,66,.5);font-size:11px;cursor:pointer}
 .path-row:hover{background:rgba(0,200,240,.05)}
 .path-row.active{background:rgba(0,200,240,.08)}
+.deselect-btn{background:none;border:1px solid var(--accent);color:var(--accent);cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:8px;padding:1px 5px;letter-spacing:1px;margin-right:3px}
+.deselect-btn:hover{background:var(--accent);color:#000}
 .path-label{flex:1;color:var(--text)}
 .path-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 2px}
 .path-del:hover{color:var(--red)}
@@ -224,7 +227,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260524-1">BUILD 20260524-1</span>
+      <span class="hdr-tag" title="Build 20260524-2">BUILD 20260524-2</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -319,7 +322,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260524-1';
+const BUILD_ID='20260524-2';
 // ═══════════════════════════════════════════════════════════
 //  STATE
 //  Graph model: nodes (waypoints) + edges (links between any two)
@@ -699,10 +702,13 @@ function renderEdgesPanel() {
     if (!a||!b) return;
     const statusCol = !e.result ? '#4a6278' : e.result.status==='clear' ? '#2ecc71' : e.result.status==='marginal' ? '#f39c12' : '#e74c3c';
     const statusTxt = !e.result ? '' : e.result.status==='clear' ? '✓' : e.result.status==='marginal' ? '⚠' : e.result.status==='error' ? '!' : '✕';
-    const row = document.createElement('div'); row.className='edge-row';
+    const isActive = S.activeView?.type==='edge' && S.activeView.id===e.id;
+    const row = document.createElement('div'); row.className='edge-row'+(isActive?' active':'');
+    const deselectBtn = isActive ? `<button class="deselect-btn" title="Deselect (Esc)" onclick="event.stopPropagation();clearActiveView()">DESELECT</button>` : '';
     row.innerHTML=`<div class="edge-dot" style="background:${statusCol}"></div>
       <div class="edge-label">${escHtml(a.name)} ↔ ${escHtml(b.name)}</div>
       <div class="edge-status" style="color:${statusCol}">${statusTxt}</div>
+      ${deselectBtn}
       <button class="edge-del" onclick="removeEdge(${e.id})">✕</button>`;
     row.style.cursor='pointer';
     row.onclick = ev => {
@@ -721,9 +727,12 @@ function renderPathsPanel() {
   S.paths.forEach(p => {
     // Rebuild name from current node names
     const names = p.nodeIds.map(id=>S.nodes.find(n=>n.id===id)?.name||'?').join(' → ');
+    const isActive = S.activeView?.type==='path' && S.activeView.id===p.id;
     const row = document.createElement('div');
-    row.className='path-row'+(S.activeView?.type==='path'&&S.activeView?.id===p.id?' active':'');
+    row.className='path-row'+(isActive?' active':'');
+    const deselectBtn = isActive ? `<button class="deselect-btn" title="Deselect (Esc)" onclick="event.stopPropagation();clearActiveView()">DESELECT</button>` : '';
     row.innerHTML=`<div class="path-label">${escHtml(names)}</div>
+      ${deselectBtn}
       <button class="path-del" onclick="event.stopPropagation();removePath(${p.id})">✕</button>`;
     row.onclick = () => {
       if (S.activeView?.type==='path' && S.activeView.id===p.id) { clearActiveView(); return; }
@@ -836,7 +845,13 @@ function insertNodeAt(idx){
 }
 
 document.addEventListener('click',e=>{if(!ctxMenu.contains(e.target))closeCtx();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx();});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  if(ctxMenu.style.display==='block'){closeCtx();return;}
+  const t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
+  if(S.activeView) clearActiveView();
+});
 document.getElementById('map').addEventListener('contextmenu',e=>e.preventDefault());
 
 // ═══════════════════════════════════════════════════════════
