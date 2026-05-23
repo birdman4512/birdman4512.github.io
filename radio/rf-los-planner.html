@@ -320,6 +320,7 @@ const S = {
   _analysing: false,
   _elevQueue: Promise.resolve(),
   _lastElevRequest: 0,
+  _lastOpenTopoRequest: 0,
   _dragId: null
 };
 
@@ -769,6 +770,19 @@ function var_accent(){return getComputedStyle(document.documentElement).getPrope
 // ═══════════════════════════════════════════════════════════
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
+async function getElevationBatch(lats,lngs){
+  try{
+    return await openMeteoElev(lats,lngs);
+  }catch(primaryErr){
+    toast('Open-Meteo elevation unavailable. Trying Open Topo Data...');
+    try{
+      return await openTopoDataElev(lats,lngs);
+    }catch(fallbackErr){
+      throw new Error(`${primaryErr.message}; Open Topo Data fallback failed: ${fallbackErr.message}`);
+    }
+  }
+}
+
 async function openMeteoElev(lats,lngs){
   const url=`https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lngs.join(',')}`;
   const job=S._elevQueue.catch(()=>{}).then(async()=>{
@@ -797,10 +811,24 @@ async function requestOpenMeteoElev(url){
   }
 }
 
+async function openTopoDataElev(lats,lngs){
+  const locations=lats.map((lat,i)=>`${lat},${lngs[i]}`).join('|');
+  const url=`https://api.opentopodata.org/v1/srtm90m?locations=${encodeURIComponent(locations)}`;
+  const sinceLast=Date.now()-S._lastOpenTopoRequest;
+  if(sinceLast<1000) await sleep(1000-sinceLast);
+  S._lastOpenTopoRequest=Date.now();
+  const r=await fetch(url,{signal:AbortSignal.timeout(15000)});
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  const data=await r.json();
+  if(data.status&&data.status!=='OK') throw new Error(data.error||data.status);
+  if(!Array.isArray(data.results)||data.results.length!==lats.length) throw new Error('Incomplete elevation response');
+  return data.results.map(result=>result.elevation);
+}
+
 async function fetchElevSingle(lat,lng){
   const key=`${(+lat).toFixed(5)},${(+lng).toFixed(5)}`;
   if(S.elevCache[key]!==undefined) return S.elevCache[key];
-  const [v]=await openMeteoElev([(+lat).toFixed(5)],[(+lng).toFixed(5)]);
+  const [v]=await getElevationBatch([(+lat).toFixed(5)],[(+lng).toFixed(5)]);
   S.elevCache[key]=v??0; return S.elevCache[key];
 }
 
@@ -838,7 +866,7 @@ async function fetchProfile(lat1,lng1,lat2,lng2,N=80){
   const CHUNK=100; const elevs=[];
   for(let i=0;i<lats.length;i+=CHUNK){
     const bl=lats.slice(i,i+CHUNK),bg=lngs.slice(i,i+CHUNK);
-    const batch=await openMeteoElev(bl,bg);
+    const batch=await getElevationBatch(bl,bg);
     if(!Array.isArray(batch)||batch.length!==bl.length||batch.some(v=>v===null||v===undefined||Number.isNaN(Number(v)))) {
       throw new Error('Elevation profile returned incomplete data');
     }
