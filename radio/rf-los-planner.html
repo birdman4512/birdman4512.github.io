@@ -309,9 +309,6 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 
 <script>
 const BUILD_ID='20260523-8';
-if(!new URLSearchParams(window.location.search).has('v')){
-  window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
-}
 // ═══════════════════════════════════════════════════════════
 //  STATE
 //  Graph model: nodes (waypoints) + edges (links between any two)
