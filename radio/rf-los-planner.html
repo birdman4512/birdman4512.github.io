@@ -321,7 +321,7 @@ const S = {
   _elevQueue: Promise.resolve(),
   _lastElevRequest: 0,
   _openMeteoCooldownUntil: 0,
-  _lastOpenTopoRequest: 0,
+  _lastFallbackElevRequest: 0,
   _dragId: null
 };
 
@@ -774,20 +774,20 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function getElevationBatch(lats,lngs){
   let primaryErr=null;
   if(Date.now()<S._openMeteoCooldownUntil){
-    toast('Open-Meteo is rate limited. Using Open Topo Data...');
+    toast('Open-Meteo is rate limited. Using Open-Elevation...');
   }else{
     try{
       return await openMeteoElev(lats,lngs);
     }catch(err){
       primaryErr=err;
-      toast('Open-Meteo elevation unavailable. Trying Open Topo Data...');
+      toast('Open-Meteo elevation unavailable. Trying Open-Elevation...');
     }
   }
   try{
-    return await openTopoDataElev(lats,lngs);
+    return await openElevationElev(lats,lngs);
   }catch(fallbackErr){
     const primaryMsg=primaryErr?.message||'Open-Meteo skipped while rate limited';
-    throw new Error(`${primaryMsg}; Open Topo Data fallback failed: ${fallbackErr.message}`);
+    throw new Error(`${primaryMsg}; Open-Elevation fallback failed: ${fallbackErr.message}`);
   }
 }
 
@@ -815,16 +815,15 @@ async function requestOpenMeteoElev(url){
   throw new Error(`Elevation lookup failed (HTTP ${r.status})`);
 }
 
-async function openTopoDataElev(lats,lngs){
+async function openElevationElev(lats,lngs){
   const locations=lats.map((lat,i)=>`${lat},${lngs[i]}`).join('|');
-  const url=`https://api.opentopodata.org/v1/srtm90m?locations=${encodeURIComponent(locations)}`;
-  const sinceLast=Date.now()-S._lastOpenTopoRequest;
+  const url=`https://api.open-elevation.com/api/v1/lookup?locations=${encodeURIComponent(locations)}`;
+  const sinceLast=Date.now()-S._lastFallbackElevRequest;
   if(sinceLast<1000) await sleep(1000-sinceLast);
-  S._lastOpenTopoRequest=Date.now();
+  S._lastFallbackElevRequest=Date.now();
   const r=await fetch(url,{signal:AbortSignal.timeout(15000)});
   if(!r.ok) throw new Error(`HTTP ${r.status}`);
   const data=await r.json();
-  if(data.status&&data.status!=='OK') throw new Error(data.error||data.status);
   if(!Array.isArray(data.results)||data.results.length!==lats.length) throw new Error('Incomplete elevation response');
   return data.results.map(result=>result.elevation);
 }
