@@ -218,7 +218,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build f637959">BUILD f637959</span>
+      <span class="hdr-tag" title="Build 20260523-1">BUILD 20260523-1</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,6 +307,10 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
+const BUILD_ID='20260523-1';
+if(!new URLSearchParams(window.location.search).has('v')){
+  window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
+}
 // ═══════════════════════════════════════════════════════════
 //  STATE
 //  Graph model: nodes (waypoints) + edges (links between any two)
