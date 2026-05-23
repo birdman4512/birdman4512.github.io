@@ -218,7 +218,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-4">BUILD 20260523-4</span>
+      <span class="hdr-tag" title="Build 20260523-5">BUILD 20260523-5</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,7 +307,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-4';
+const BUILD_ID='20260523-5';
 if(!new URLSearchParams(window.location.search).has('v')){
   window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
 }
@@ -332,6 +332,7 @@ const S = {
   _lastFallbackElevRequest: 0,
   hoverMarker: null,
   profileHover: null,
+  redrawProfile: null,
   _dragId: null
 };
 
@@ -777,6 +778,8 @@ function showEdgeCtx(cx,cy,edge){
 
 function attachEdgeHandlers(edge){
   if(!edge.line) return;
+  edge.line.on('mousemove',e=>handleMapLineHover(edge,e.latlng));
+  edge.line.on('mouseout',hideProfileCursor);
   edge.line.on('contextmenu',e=>{
     L.DomEvent.preventDefault(e.originalEvent);
     L.DomEvent.stopPropagation(e.originalEvent);
@@ -1105,6 +1108,7 @@ function renderChartTabs(){
 function showEdgeProfile(edgeId){
   const e=S.edges.find(x=>x.id===edgeId);
   if(!e?.profile) return;
+  S.redrawProfile=()=>showEdgeProfile(edgeId);
   const{elevs,dists,dist,aH,bH,a,b,freq,K,N}=e.profile;
   const r=e.result;
   const title=`${a.name} ↔ ${b.name}  |  ${(dist/1000).toFixed(2)} km  |  GND+ANT: ${aH.toFixed(1)}m → ${bH.toFixed(1)}m`;
@@ -1119,6 +1123,7 @@ function showEdgeProfile(edgeId){
 function showPathProfile(pathId){
   const path=S.paths.find(p=>p.id===pathId);
   if(!path) return;
+  S.redrawProfile=()=>showPathProfile(pathId);
   highlightActiveMapView();
 
   // Collect edges in order — each consecutive pair of nodeIds
@@ -1408,6 +1413,67 @@ function handleProfileHover(ev){
   marker.bringToFront();
 }
 
+function drawProfileCursorAtDistance(dist){
+  if(!S.profileHover||!S.redrawProfile) return;
+  S.redrawProfile();
+  const canvas=document.getElementById('profileCanvas');
+  const ctx=canvas.getContext('2d');
+  const {PAD,totalDist}=S.profileHover;
+  const pw=canvas.offsetWidth-PAD.l-PAD.r;
+  const x=PAD.l+(Math.max(0,Math.min(totalDist,dist))/totalDist)*pw;
+  ctx.save();
+  ctx.strokeStyle='#ff2bd6';
+  ctx.lineWidth=2;
+  ctx.setLineDash([5,3]);
+  ctx.beginPath();
+  ctx.moveTo(x,PAD.t);
+  ctx.lineTo(x,canvas.offsetHeight-PAD.b);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#ff2bd6';
+  ctx.beginPath();
+  ctx.arc(x,PAD.t+6,4,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function projectPointToSegment(latlng,a,b){
+  const p=S.map.latLngToLayerPoint(latlng);
+  const p0=S.map.latLngToLayerPoint([a.lat,a.lng]);
+  const p1=S.map.latLngToLayerPoint([b.lat,b.lng]);
+  const vx=p1.x-p0.x,vy=p1.y-p0.y;
+  const len2=vx*vx+vy*vy||1;
+  return Math.max(0,Math.min(1,((p.x-p0.x)*vx+(p.y-p0.y)*vy)/len2));
+}
+
+function profileDistanceForEdgeHover(edge,latlng){
+  if(!S.profileHover) return null;
+  if(S.activeView?.type==='edge'&&S.activeView.id===edge.id){
+    const t=projectPointToSegment(latlng,edge.profile.a,edge.profile.b);
+    return t*edge.profile.dist;
+  }
+  if(S.activeView?.type==='path'){
+    const seg=S.profileHover.segments.find(s=>
+      (s.a.id===edge.aId&&s.b.id===edge.bId)||(s.a.id===edge.bId&&s.b.id===edge.aId)
+    );
+    if(!seg) return null;
+    const t=projectPointToSegment(latlng,seg.a,seg.b);
+    return seg.start+t*seg.dist;
+  }
+  return null;
+}
+
+function handleMapLineHover(edge,latlng){
+  if(!edge.profile) return;
+  const dist=profileDistanceForEdgeHover(edge,latlng);
+  if(dist===null) return;
+  drawProfileCursorAtDistance(dist);
+}
+
+function hideProfileCursor(){
+  if(S.redrawProfile) S.redrawProfile();
+}
+
 function initProfileHover(){
   const canvas=document.getElementById('profileCanvas');
   if(canvas.dataset.hoverBound==='1') return;
@@ -1424,6 +1490,7 @@ function clearCanvas(){
   document.getElementById('chartTitle').textContent='TERRAIN PROFILE';
   document.getElementById('chartTabs').innerHTML='';
   S.profileHover=null;
+  S.redrawProfile=null;
   hideProfileHoverMarker();
 }
 
