@@ -218,7 +218,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-3">BUILD 20260523-3</span>
+      <span class="hdr-tag" title="Build 20260523-4">BUILD 20260523-4</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,7 +307,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-3';
+const BUILD_ID='20260523-4';
 if(!new URLSearchParams(window.location.search).has('v')){
   window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
 }
@@ -343,6 +343,9 @@ const nodeColor = i => COLORS[i % COLORS.length];
 // ═══════════════════════════════════════════════════════════
 function initMap() {
   S.map = L.map('map', { center: [-27.6, 153.1], zoom: 10, zoomControl: true });
+  S.map.createPane('profileHoverPane');
+  S.map.getPane('profileHoverPane').style.zIndex=750;
+  S.map.getPane('profileHoverPane').style.pointerEvents='none';
   const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors', maxZoom: 19, crossOrigin: true
   }).addTo(S.map);
@@ -1160,6 +1163,7 @@ function setupCanvas(){
 
 function drawProfile({elevs,dists,dist,aH,bH,freq,K,N,result,labels}){
   const{ctx,W,H}=setupCanvas();
+  initProfileHover();
   const PAD={l:46,r:12,t:14,b:22};
   const pw=W-PAD.l-PAD.r,ph=H-PAD.t-PAD.b;
   const activeEdge=S.activeView?.type==='edge'?S.edges.find(e=>e.id===S.activeView.id):null;
@@ -1188,6 +1192,7 @@ function drawProfile({elevs,dists,dist,aH,bH,freq,K,N,result,labels}){
 
 function drawPathProfile(hops,names){
   const{ctx,W,H}=setupCanvas();
+  initProfileHover();
   const PAD={l:46,r:12,t:14,b:22};
   const pw=W-PAD.l-PAD.r,ph=H-PAD.t-PAD.b;
 
@@ -1368,20 +1373,20 @@ function interpLatLng(a,b,t){
 function ensureProfileHoverMarker(){
   if(S.hoverMarker) return S.hoverMarker;
   S.hoverMarker=L.circleMarker([0,0],{
-    radius:8,
+    radius:10,
     color:'#ffffff',
-    weight:2,
+    weight:3,
     fillColor:'#ff2bd6',
     fillOpacity:.9,
     opacity:1,
-    pane:'markerPane'
-  }).addTo(S.map);
+    pane:'profileHoverPane'
+  });
   S.hoverMarker.bindTooltip('Profile cursor',{direction:'top',offset:[0,-10]});
   return S.hoverMarker;
 }
 
 function hideProfileHoverMarker(){
-  if(S.hoverMarker) S.hoverMarker.setStyle({opacity:0,fillOpacity:0});
+  if(S.hoverMarker&&S.map.hasLayer(S.hoverMarker)) S.map.removeLayer(S.hoverMarker);
 }
 
 function handleProfileHover(ev){
@@ -1398,12 +1403,15 @@ function handleProfileHover(ev){
   const t=Math.max(0,Math.min(1,(dist-seg.start)/seg.dist));
   const marker=ensureProfileHoverMarker();
   marker.setLatLng(interpLatLng(seg.a,seg.b,t));
+  if(!S.map.hasLayer(marker)) marker.addTo(S.map);
   marker.setStyle({opacity:1,fillOpacity:.9});
   marker.bringToFront();
 }
 
 function initProfileHover(){
   const canvas=document.getElementById('profileCanvas');
+  if(canvas.dataset.hoverBound==='1') return;
+  canvas.dataset.hoverBound='1';
   canvas.addEventListener('mousemove',handleProfileHover);
   canvas.addEventListener('mouseleave',hideProfileHoverMarker);
 }
