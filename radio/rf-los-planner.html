@@ -326,7 +326,7 @@ function makeMarker(node) {
     updateNodeFields(node); redrawEdgeLines();
   });
   marker.on('dragend', () => {
-    node.elev = null; fetchElev(node);
+    node.elev = null; invalidateEdgesForNode(node.id); fetchElev(node);
     // Re-run edges involving this node
     const affected = S.edges.filter(e => e.aId === node.id || e.bId === node.id);
     if (affected.length > 0 && S.edges.some(e => e.result)) runAnalysis();
@@ -441,6 +441,32 @@ function redrawEdgeLines() {
   });
 }
 
+function invalidateEdgesForNode(nodeId) {
+  let changed = false;
+  S.edges.forEach(e => {
+    if (e.aId !== nodeId && e.bId !== nodeId) return;
+    e.result = null;
+    e.profile = null;
+    changed = true;
+    if (e.line) e.line.setStyle({color:'#4a6278',weight:2,opacity:.7,dashArray:'5 4'});
+  });
+  if (!changed) return;
+
+  const active = S.activeView;
+  if (active?.type === 'edge') {
+    const edge = S.edges.find(e => e.id === active.id);
+    if (edge && (edge.aId === nodeId || edge.bId === nodeId)) { S.activeView = null; clearCanvas(); }
+  } else if (active?.type === 'path') {
+    const path = S.paths.find(p => p.id === active.id);
+    if (path?.nodeIds.includes(nodeId)) { S.activeView = null; clearCanvas(); }
+  }
+
+  renderResults();
+  renderEdgesPanel();
+  renderChartTabs();
+  renderPathsPanel();
+}
+
 // ═══════════════════════════════════════════════════════════
 //  AUTO PATH BUILDING
 //  When an edge is added, try to extend an existing path
@@ -547,14 +573,14 @@ function renderEdgesPanel() {
     const a=S.nodes.find(n=>n.id===e.aId), b=S.nodes.find(n=>n.id===e.bId);
     if (!a||!b) return;
     const statusCol = !e.result ? '#4a6278' : e.result.status==='clear' ? '#2ecc71' : e.result.status==='marginal' ? '#f39c12' : '#e74c3c';
-    const statusTxt = !e.result ? '' : e.result.status==='clear' ? '✓' : e.result.status==='marginal' ? '⚠' : '✕';
+    const statusTxt = !e.result ? '' : e.result.status==='clear' ? '✓' : e.result.status==='marginal' ? '⚠' : e.result.status==='error' ? '!' : '✕';
     const row = document.createElement('div'); row.className='edge-row';
     row.innerHTML=`<div class="edge-dot" style="background:${statusCol}"></div>
       <div class="edge-label">${escHtml(a.name)} ↔ ${escHtml(b.name)}</div>
       <div class="edge-status" style="color:${statusCol}">${statusTxt}</div>
       <button class="edge-del" onclick="removeEdge(${e.id})">✕</button>`;
     row.style.cursor='pointer';
-    row.onclick = ev => { if (ev.target.classList.contains('edge-del')) return; showEdgeProfile(e.id); };
+    row.onclick = ev => { if (ev.target.classList.contains('edge-del')||!e.profile) return; showEdgeProfile(e.id); };
     panel.appendChild(row);
   });
 }
@@ -584,13 +610,13 @@ function setNodeCoord(id, field, val) {
   const node=S.nodes.find(n=>n.id===id); if(!node) return;
   node[field]=val; node.elev=null;
   if(node.marker) node.marker.setLatLng([node.lat,node.lng]);
-  redrawEdgeLines(); fetchElev(node);
+  redrawEdgeLines(); invalidateEdgesForNode(id); fetchElev(node);
 }
 function setNodeAntH(id, val) {
   const node=S.nodes.find(n=>n.id===id); if(!node) return;
-  node.antH=val; updateAmslDisplay(node);
+  node.antH=val; updateAmslDisplay(node); invalidateEdgesForNode(id);
 }
-function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 
 // ═══════════════════════════════════════════════════════════
 //  CONTEXT MENU
@@ -602,7 +628,17 @@ function buildCtx(title, items) {
   while(ctxMenu.children.length>1) ctxMenu.removeChild(ctxMenu.lastChild);
   items.forEach(item=>{
     if(item==='sep'){const s=document.createElement('div');s.className='ctx-sep';ctxMenu.appendChild(s);}
-    else{const el=document.createElement('div');el.className='ctx-item'+(item.danger?' danger':'');el.innerHTML=`<span class="ctx-icon">${item.icon}</span>${item.label}`;el.onclick=()=>{closeCtx();item.action();};ctxMenu.appendChild(el);}
+    else{
+      const el=document.createElement('div');
+      el.className='ctx-item'+(item.danger?' danger':'');
+      const icon=document.createElement('span');
+      icon.className='ctx-icon';
+      icon.textContent=item.icon;
+      el.appendChild(icon);
+      el.appendChild(document.createTextNode(item.label));
+      el.onclick=()=>{closeCtx();item.action();};
+      ctxMenu.appendChild(el);
+    }
   });
 }
 function posCtx(cx,cy){
@@ -688,7 +724,15 @@ async function fetchElevSingle(lat,lng){
 }
 
 async function fetchElev(node){
-  try{node.elev=await fetchElevSingle(node.lat,node.lng);}catch{node.elev=0;}
+  const key=`${(+node.lat).toFixed(5)},${(+node.lng).toFixed(5)}`;
+  try{
+    const elev=await fetchElevSingle(node.lat,node.lng);
+    if(key!==`${(+node.lat).toFixed(5)},${(+node.lng).toFixed(5)}`) return;
+    node.elev=elev;
+  }catch{
+    if(key!==`${(+node.lat).toFixed(5)},${(+node.lng).toFixed(5)}`) return;
+    node.elev=null;
+  }
   updateElevDisplay(node);
 }
 
@@ -711,8 +755,11 @@ async function fetchProfile(lat1,lng1,lat2,lng2,N=80){
   const CHUNK=100; const elevs=[];
   for(let i=0;i<lats.length;i+=CHUNK){
     const bl=lats.slice(i,i+CHUNK),bg=lngs.slice(i,i+CHUNK);
-    try{const batch=await openMeteoElev(bl,bg);batch.forEach(v=>elevs.push(v??0));}
-    catch{bl.forEach(()=>elevs.push(0));}
+    const batch=await openMeteoElev(bl,bg);
+    if(!Array.isArray(batch)||batch.length!==bl.length||batch.some(v=>v===null||v===undefined||Number.isNaN(Number(v)))) {
+      throw new Error('Elevation profile returned incomplete data');
+    }
+    batch.forEach(v=>elevs.push(Number(v)));
   }
   return elevs;
 }
@@ -746,7 +793,15 @@ async function runAnalysis(){
     if(!a||!b) continue;
     toast(`Fetching terrain: ${a.name} ↔ ${b.name} (${ei+1}/${S.edges.length})`);
     const dist=haversine(a.lat,a.lng,b.lat,b.lng);
-    const elevs=await fetchProfile(a.lat,a.lng,b.lat,b.lng,N);
+    let elevs;
+    try{
+      elevs=await fetchProfile(a.lat,a.lng,b.lat,b.lng,N);
+    }catch(err){
+      e.result={dist,status:'error',error:err.message||'Terrain lookup failed'};
+      e.profile=null;
+      if(e.line) e.line.setStyle({color:'#e74c3c',weight:2,opacity:.8,dashArray:'3 5'});
+      continue;
+    }
     const dists=elevs.map((_,s)=>dist*s/N);
 
     // Ground elevation from profile endpoints (same dataset = consistent datum)
@@ -781,13 +836,21 @@ async function runAnalysis(){
   renderEdgesPanel();
   renderChartTabs();
 
-  // Default view: first path if any, otherwise first edge
-  if(S.paths.length>0){
-    S.activeView={type:'path',id:S.paths[0].id};
-    showPathProfile(S.paths[0].id);
-  } else if(S.edges.length>0){
-    S.activeView={type:'edge',id:S.edges[0].id};
-    showEdgeProfile(S.edges[0].id);
+  // Default view: first fully analysed path if any, otherwise first analysed edge.
+  const analysedPath=S.paths.find(p=>p.nodeIds.slice(0,-1).every((id,i)=>{
+    const nextId=p.nodeIds[i+1];
+    return S.edges.some(e=>e.profile&&((e.aId===id&&e.bId===nextId)||(e.aId===nextId&&e.bId===id)));
+  }));
+  const analysedEdge=S.edges.find(e=>e.profile);
+  if(analysedPath){
+    S.activeView={type:'path',id:analysedPath.id};
+    showPathProfile(analysedPath.id);
+  } else if(analysedEdge){
+    S.activeView={type:'edge',id:analysedEdge.id};
+    showEdgeProfile(analysedEdge.id);
+  } else {
+    S.activeView=null;
+    clearCanvas();
   }
   renderPathsPanel();
 }
@@ -806,16 +869,27 @@ function renderResults(){
     const active=S.activeView?.type==='edge'&&S.activeView?.id===e.id;
     const div=document.createElement('div');
     div.className='hop-card'+(active?' active-hop':'');
-    div.innerHTML=`<div class="hop-top">
-      <span class="hop-name">${escHtml(a.name)} ↔ ${escHtml(b.name)}</span>
-      <span class="badge ${r.status}">${r.status==='clear'?'✓ CLEAR':r.status==='marginal'?'⚠ MARGINAL':'✕ BLOCKED'}</span>
-    </div>
-    <div class="hop-stats">
-      <div class="hop-stat"><span class="lbl">Dist: </span><span class="val">${(r.dist/1000).toFixed(2)}km</span></div>
-      <div class="hop-stat"><span class="lbl">LOS: </span><span class="val" style="color:${r.minLosClear>0?'var(--green)':'var(--red)'}">${r.minLosClear.toFixed(1)}m</span></div>
-      <div class="hop-stat"><span class="lbl">Fz1: </span><span class="val" style="color:${r.minFzClear>0?'var(--green)':'var(--orange)'}">${r.minFzClear.toFixed(1)}m</span></div>
-    </div>`;
-    div.onclick=()=>{S.activeView={type:'edge',id:e.id};showEdgeProfile(e.id);renderResults();renderChartTabs();renderPathsPanel();};
+    if(r.status==='error'){
+      div.innerHTML=`<div class="hop-top">
+        <span class="hop-name">${escHtml(a.name)} ↔ ${escHtml(b.name)}</span>
+        <span class="badge blocked">! TERRAIN ERROR</span>
+      </div>
+      <div class="hop-stats">
+        <div class="hop-stat"><span class="lbl">Dist: </span><span class="val">${(r.dist/1000).toFixed(2)}km</span></div>
+        <div class="hop-stat"><span class="lbl">Error: </span><span class="val" style="color:var(--red)">${escHtml(r.error||'Unable to fetch elevation')}</span></div>
+      </div>`;
+    }else{
+      div.innerHTML=`<div class="hop-top">
+        <span class="hop-name">${escHtml(a.name)} ↔ ${escHtml(b.name)}</span>
+        <span class="badge ${r.status}">${r.status==='clear'?'✓ CLEAR':r.status==='marginal'?'⚠ MARGINAL':'✕ BLOCKED'}</span>
+      </div>
+      <div class="hop-stats">
+        <div class="hop-stat"><span class="lbl">Dist: </span><span class="val">${(r.dist/1000).toFixed(2)}km</span></div>
+        <div class="hop-stat"><span class="lbl">LOS: </span><span class="val" style="color:${r.minLosClear>0?'var(--green)':'var(--red)'}">${r.minLosClear.toFixed(1)}m</span></div>
+        <div class="hop-stat"><span class="lbl">Fz1: </span><span class="val" style="color:${r.minFzClear>0?'var(--green)':'var(--orange)'}">${r.minFzClear.toFixed(1)}m</span></div>
+      </div>`;
+    }
+    div.onclick=()=>{if(!e.profile) return; S.activeView={type:'edge',id:e.id};showEdgeProfile(e.id);renderResults();renderChartTabs();renderPathsPanel();};
     el.appendChild(div);
   });
 }
@@ -836,7 +910,7 @@ function renderChartTabs(){
     tabs.appendChild(btn);
   });
   // Individual edge tabs
-  S.edges.filter(e=>e.result).forEach(e=>{
+  S.edges.filter(e=>e.result&&e.profile).forEach(e=>{
     const a=S.nodes.find(n=>n.id===e.aId),b=S.nodes.find(n=>n.id===e.bId);
     const label=`${a?.name||'?'} ↔ ${b?.name||'?'}`;
     const btn=document.createElement('button');
@@ -1024,7 +1098,12 @@ function drawPathProfile(hops,names){
   names.forEach((name,wi)=>{
     const hopIdx=Math.min(wi,hops.length-1);
     const h=hops[hopIdx];
-    const wpH=wi===0?(h.flip?h.e.profile.bH:h.e.profile.aH):wi===names.length-1?(hops[hops.length-1].flip?hops[hops.length-1].e.profile.aH:hops[hops.length-1].e.profile.bH):h.flip?h.e.profile.aH:h.e.profile.bH;
+    const prevHop=wi>0?hops[wi-1]:null;
+    const wpH=wi===0
+      ? (h.flip?h.e.profile.bH:h.e.profile.aH)
+      : wi===names.length-1
+        ? (hops[hops.length-1].flip?hops[hops.length-1].e.profile.aH:hops[hops.length-1].e.profile.bH)
+        : (prevHop.flip?prevHop.e.profile.aH:prevHop.e.profile.bH);
     if(wi>0&&wi<names.length-1){
       ctx.strokeStyle='rgba(200,218,234,.15)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
       ctx.beginPath();ctx.moveTo(xp(cumW),PAD.t);ctx.lineTo(xp(cumW),H-PAD.b);ctx.stroke();ctx.setLineDash([]);
@@ -1176,7 +1255,11 @@ function toast(msg,duration){
   const el=document.getElementById('toast');
   if(!msg){el.style.display='none';return;}
   el.style.display='block';
-  el.innerHTML=`<span style="display:inline-block;width:8px;height:8px;border:2px solid #4a6278;border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle"></span>${msg}`;
+  el.textContent='';
+  const spinner=document.createElement('span');
+  spinner.style.cssText='display:inline-block;width:8px;height:8px;border:2px solid #4a6278;border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle';
+  el.appendChild(spinner);
+  el.appendChild(document.createTextNode(msg));
   if(_toastTimer) clearTimeout(_toastTimer);
   if(duration) _toastTimer=setTimeout(()=>el.style.display='none',duration);
 }
