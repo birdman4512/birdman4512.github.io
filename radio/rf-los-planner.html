@@ -43,6 +43,11 @@ header h1 em{color:var(--accent);font-style:normal}
 .sidebar{width:300px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .sb-section{padding:9px 11px;border-bottom:1px solid var(--border);flex-shrink:0}
 .section-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.sb-toggle{cursor:pointer;user-select:none}
+.sb-toggle:hover{color:var(--accent)}
+.sb-chev{display:inline-block;font-size:9px;color:var(--muted);transition:transform .15s;width:9px;margin-right:5px;text-align:center}
+.sb-toggle.collapsed .sb-chev{transform:rotate(-90deg)}
+[hidden]{display:none!important}
 .field-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .field-row label{font-size:11px;color:var(--muted);white-space:nowrap}
 input[type=number],input[type=text],select{font-family:'Share Tech Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 6px;transition:border .15s}
@@ -219,7 +224,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-8">BUILD 20260523-8</span>
+      <span class="hdr-tag" title="Build 20260524-1">BUILD 20260524-1</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -229,57 +234,63 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 
       <!-- RF Params -->
       <div class="sb-section">
-        <div class="section-label">RF Parameters</div>
-        <div class="field-row" style="margin-bottom:5px">
-          <label>Preset</label>
-          <select id="inpPreset" onchange="applyPreset()" style="flex:1;min-width:0">
-            <option value="915">Meshtastic AU/US (915 MHz)</option>
-            <option value="868">Meshtastic EU (868 MHz)</option>
-            <option value="433">Meshtastic Asia (433 MHz)</option>
-            <option value="146">2m VHF (146 MHz)</option>
-            <option value="438">70cm UHF (438 MHz)</option>
-            <option value="2400">2.4 GHz Wi-Fi</option>
-            <option value="5800">5.8 GHz Wi-Fi</option>
-            <option value="">Custom</option>
-          </select>
-        </div>
-        <div class="field-row">
-          <label>Freq (MHz)</label>
-          <input type="number" id="inpFreq" value="915" min="1" style="width:70px" oninput="syncPresetFromFreq()">
-          <label>K-Factor</label>
-          <select id="inpK" style="width:60px">
-            <option value="1.333">4/3</option>
-            <option value="1.0">1.0</option>
-            <option value="0.667">2/3</option>
-          </select>
+        <div class="section-label sb-toggle" data-sb="rf"><span class="sb-chev">▾</span>RF Parameters</div>
+        <div data-sb-body="rf">
+          <div class="field-row" style="margin-bottom:5px">
+            <label>Preset</label>
+            <select id="inpPreset" onchange="applyPreset()" style="flex:1;min-width:0">
+              <option value="915">Meshtastic AU/US (915 MHz)</option>
+              <option value="868">Meshtastic EU (868 MHz)</option>
+              <option value="433">Meshtastic Asia (433 MHz)</option>
+              <option value="146">2m VHF (146 MHz)</option>
+              <option value="438">70cm UHF (438 MHz)</option>
+              <option value="2400">2.4 GHz Wi-Fi</option>
+              <option value="5800">5.8 GHz Wi-Fi</option>
+              <option value="">Custom</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label>Freq (MHz)</label>
+            <input type="number" id="inpFreq" value="915" min="1" style="width:70px" oninput="syncPresetFromFreq()">
+            <label>K-Factor</label>
+            <select id="inpK" style="width:60px">
+              <option value="1.333">4/3</option>
+              <option value="1.0">1.0</option>
+              <option value="0.667">2/3</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <!-- Nodes -->
       <div class="sb-section" style="display:flex;align-items:center;justify-content:space-between;padding:6px 11px">
-        <div class="section-label" style="margin:0">NODES <span id="wpCount" style="color:var(--accent)">0</span></div>
+        <div class="section-label sb-toggle" data-sb="nodes" style="margin:0"><span class="sb-chev">▾</span>NODES <span id="wpCount" style="color:var(--accent)">0</span></div>
         <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">DRAG TO REORDER</span>
       </div>
-      <div class="wp-scroll" id="wpList"></div>
+      <div class="wp-scroll" id="wpList" data-sb-body="nodes"></div>
 
       <!-- Edges -->
       <div class="sb-section" style="padding:5px 11px">
-        <div class="section-label" style="margin-bottom:0">LINKS <span id="edgeCount" style="color:var(--accent)">0</span> <span style="color:var(--muted);font-size:8px">(right-click node to connect · right-click link to delete)</span></div>
+        <div class="section-label sb-toggle" data-sb="links" style="margin-bottom:0"><span class="sb-chev">▾</span>LINKS <span id="edgeCount" style="color:var(--accent)">0</span> <span style="color:var(--muted);font-size:8px">(right-click node to connect · right-click link to delete)</span></div>
       </div>
-      <div class="edges-panel" id="edgesPanel"><div class="no-data">No links yet.</div></div>
+      <div class="edges-panel" id="edgesPanel" data-sb-body="links"><div class="no-data">No links yet.</div></div>
 
       <!-- Paths -->
       <div class="sb-section" style="display:flex;align-items:center;justify-content:space-between;padding:5px 11px">
-        <div class="section-label" style="margin:0">PATHS <span id="pathCount" style="color:var(--accent)">0</span></div>
+        <div class="section-label sb-toggle" data-sb="paths" style="margin:0"><span class="sb-chev">▾</span>PATHS <span id="pathCount" style="color:var(--accent)">0</span></div>
         <button class="btn" style="font-size:9px;padding:2px 8px" onclick="addPath()">+ NEW PATH</button>
       </div>
-      <div class="paths-panel" id="pathsPanel"><div class="no-data">No paths defined.</div></div>
+      <div class="paths-panel" id="pathsPanel" data-sb-body="paths"><div class="no-data">No paths defined.</div></div>
 
       <div class="analyse-wrap">
         <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE ALL LINKS</button>
       </div>
 
-      <div class="results-area" id="resultsArea">
+      <!-- Results -->
+      <div class="sb-section" style="padding:5px 11px">
+        <div class="section-label sb-toggle" data-sb="results" style="margin-bottom:0"><span class="sb-chev">▾</span>RESULTS</div>
+      </div>
+      <div class="results-area" id="resultsArea" data-sb-body="results">
         <div class="no-data">Add nodes, links, then analyse.</div>
       </div>
 
@@ -308,7 +319,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-8';
+const BUILD_ID='20260524-1';
 // ═══════════════════════════════════════════════════════════
 //  STATE
 //  Graph model: nodes (waypoints) + edges (links between any two)
@@ -509,6 +520,16 @@ function edgeBaseStyle(edge){
   return {color:col,weight:3,opacity:.9,dashArray:''};
 }
 
+function clearActiveView(){
+  S.activeView=null;
+  clearCanvas();
+  highlightActiveMapView();
+  renderEdgesPanel();
+  renderPathsPanel();
+  renderChartTabs();
+  renderResults();
+}
+
 function highlightActiveMapView(){
   const activePath=S.activeView?.type==='path'?S.paths.find(p=>p.id===S.activeView.id):null;
   const pathEdgeIds=new Set();
@@ -684,7 +705,11 @@ function renderEdgesPanel() {
       <div class="edge-status" style="color:${statusCol}">${statusTxt}</div>
       <button class="edge-del" onclick="removeEdge(${e.id})">✕</button>`;
     row.style.cursor='pointer';
-    row.onclick = ev => { if (ev.target.classList.contains('edge-del')||!e.profile) return; S.activeView={type:'edge',id:e.id}; showEdgeProfile(e.id); renderResults(); renderChartTabs(); renderPathsPanel(); };
+    row.onclick = ev => {
+      if (ev.target.classList.contains('edge-del')||!e.profile) return;
+      if (S.activeView?.type==='edge' && S.activeView.id===e.id) { clearActiveView(); return; }
+      S.activeView={type:'edge',id:e.id}; showEdgeProfile(e.id); renderResults(); renderChartTabs(); renderPathsPanel();
+    };
     panel.appendChild(row);
   });
 }
@@ -700,7 +725,10 @@ function renderPathsPanel() {
     row.className='path-row'+(S.activeView?.type==='path'&&S.activeView?.id===p.id?' active':'');
     row.innerHTML=`<div class="path-label">${escHtml(names)}</div>
       <button class="path-del" onclick="event.stopPropagation();removePath(${p.id})">✕</button>`;
-    row.onclick = () => { S.activeView={type:'path',id:p.id}; showPathProfile(p.id); renderChartTabs(); renderPathsPanel(); renderResults(); };
+    row.onclick = () => {
+      if (S.activeView?.type==='path' && S.activeView.id===p.id) { clearActiveView(); return; }
+      S.activeView={type:'path',id:p.id}; showPathProfile(p.id); renderChartTabs(); renderPathsPanel(); renderResults();
+    };
     panel.appendChild(row);
   });
   document.getElementById('pathCount').textContent = S.paths.length;
@@ -1104,7 +1132,10 @@ function renderChartTabs(){
     const btn=document.createElement('button');
     btn.className='chart-tab'+(S.activeView?.type==='path'&&S.activeView?.id===p.id?' active':'');
     btn.textContent=names; btn.title=names;
-    btn.onclick=()=>{S.activeView={type:'path',id:p.id};showPathProfile(p.id);renderChartTabs();renderPathsPanel();renderResults();};
+    btn.onclick=()=>{
+      if(S.activeView?.type==='path'&&S.activeView.id===p.id){clearActiveView();return;}
+      S.activeView={type:'path',id:p.id};showPathProfile(p.id);renderChartTabs();renderPathsPanel();renderResults();
+    };
     tabs.appendChild(btn);
   });
   // Individual edge tabs
@@ -1114,7 +1145,10 @@ function renderChartTabs(){
     const btn=document.createElement('button');
     btn.className='chart-tab'+(S.activeView?.type==='edge'&&S.activeView?.id===e.id?' active':'');
     btn.textContent=label; btn.title=label;
-    btn.onclick=()=>{S.activeView={type:'edge',id:e.id};showEdgeProfile(e.id);renderChartTabs();renderResults();renderPathsPanel();};
+    btn.onclick=()=>{
+      if(S.activeView?.type==='edge'&&S.activeView.id===e.id){clearActiveView();return;}
+      S.activeView={type:'edge',id:e.id};showEdgeProfile(e.id);renderChartTabs();renderResults();renderPathsPanel();
+    };
     tabs.appendChild(btn);
   });
 }
@@ -1643,9 +1677,32 @@ function hideToast(){document.getElementById('toast').style.display='none';}
 // ═══════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════
+function initCollapsibles(){
+  let state={};
+  try{ state=JSON.parse(localStorage.getItem('rfLosSidebar')||'{}'); }catch{}
+  document.querySelectorAll('.sb-toggle').forEach(toggle=>{
+    const key=toggle.dataset.sb;
+    const apply=collapsed=>{
+      toggle.classList.toggle('collapsed',collapsed);
+      document.querySelectorAll(`[data-sb-body="${key}"]`).forEach(el=>{
+        if(collapsed) el.setAttribute('hidden','');
+        else el.removeAttribute('hidden');
+      });
+    };
+    apply(!!state[key]);
+    toggle.addEventListener('click',()=>{
+      const next=!toggle.classList.contains('collapsed');
+      state[key]=next;
+      try{ localStorage.setItem('rfLosSidebar',JSON.stringify(state)); }catch{}
+      apply(next);
+    });
+  });
+}
+
 window.addEventListener('load',()=>{
   initMap();
   initProfileHover();
+  initCollapsibles();
   renderNodeList();
   setTimeout(()=>S.map.invalidateSize(),200);
   setTimeout(()=>{S.map.invalidateSize();loadFromHash();syncPresetFromFreq();maybeShowHelp();},600);
