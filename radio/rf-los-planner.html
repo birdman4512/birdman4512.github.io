@@ -218,7 +218,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-1">BUILD 20260523-1</span>
+      <span class="hdr-tag" title="Build 20260523-2">BUILD 20260523-2</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,7 +307,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-1';
+const BUILD_ID='20260523-2';
 if(!new URLSearchParams(window.location.search).has('v')){
   window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
 }
@@ -483,6 +483,7 @@ function removeEdge(id) {
   renderEdgesPanel();
   renderPathsPanel();
   renderChartTabs();
+  highlightActiveMapView();
   document.getElementById('edgeCount').textContent = S.edges.length;
   document.getElementById('pathCount').textContent = S.paths.length;
 }
@@ -494,6 +495,37 @@ function redrawEdgeLines() {
   });
 }
 
+function edgeBaseStyle(edge){
+  if(!edge.result) return {color:'#4a6278',weight:2,opacity:.7,dashArray:'5 4'};
+  if(edge.result.status==='error') return {color:'#e74c3c',weight:2,opacity:.8,dashArray:'3 5'};
+  const col=edge.result.status==='clear'?'#2ecc71':edge.result.status==='marginal'?'#f39c12':'#e74c3c';
+  return {color:col,weight:3,opacity:.9,dashArray:''};
+}
+
+function highlightActiveMapView(){
+  const activePath=S.activeView?.type==='path'?S.paths.find(p=>p.id===S.activeView.id):null;
+  const pathEdgeIds=new Set();
+  if(activePath){
+    for(let i=0;i<activePath.nodeIds.length-1;i++){
+      const aId=activePath.nodeIds[i],bId=activePath.nodeIds[i+1];
+      const edge=S.edges.find(e=>(e.aId===aId&&e.bId===bId)||(e.aId===bId&&e.bId===aId));
+      if(edge) pathEdgeIds.add(edge.id);
+    }
+  }
+  S.edges.forEach(e=>{
+    if(!e.line) return;
+    if(S.activeView?.type==='edge'&&S.activeView.id===e.id){
+      e.line.setStyle({...edgeBaseStyle(e),weight:6,opacity:1});
+      e.line.bringToFront();
+    }else if(pathEdgeIds.has(e.id)){
+      e.line.setStyle({color:'#00c8f0',weight:6,opacity:1,dashArray:''});
+      e.line.bringToFront();
+    }else{
+      e.line.setStyle(edgeBaseStyle(e));
+    }
+  });
+}
+
 function invalidateEdgesForNode(nodeId) {
   let changed = false;
   S.edges.forEach(e => {
@@ -501,7 +533,7 @@ function invalidateEdgesForNode(nodeId) {
     e.result = null;
     e.profile = null;
     changed = true;
-    if (e.line) e.line.setStyle({color:'#4a6278',weight:2,opacity:.7,dashArray:'5 4'});
+    if (e.line) e.line.setStyle(edgeBaseStyle(e));
   });
   if (!changed) return;
 
@@ -518,6 +550,7 @@ function invalidateEdgesForNode(nodeId) {
   renderEdgesPanel();
   renderChartTabs();
   renderPathsPanel();
+  highlightActiveMapView();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -567,8 +600,10 @@ function addPath() {
 
 function removePath(id) {
   S.paths = S.paths.filter(p => p.id !== id);
+  if(S.activeView?.type==='path'&&S.activeView.id===id) S.activeView=null;
   renderPathsPanel();
   renderChartTabs();
+  highlightActiveMapView();
   document.getElementById('pathCount').textContent = S.paths.length;
 }
 
@@ -633,7 +668,7 @@ function renderEdgesPanel() {
       <div class="edge-status" style="color:${statusCol}">${statusTxt}</div>
       <button class="edge-del" onclick="removeEdge(${e.id})">✕</button>`;
     row.style.cursor='pointer';
-    row.onclick = ev => { if (ev.target.classList.contains('edge-del')||!e.profile) return; showEdgeProfile(e.id); };
+    row.onclick = ev => { if (ev.target.classList.contains('edge-del')||!e.profile) return; S.activeView={type:'edge',id:e.id}; showEdgeProfile(e.id); renderResults(); renderChartTabs(); renderPathsPanel(); };
     panel.appendChild(row);
   });
 }
@@ -649,7 +684,7 @@ function renderPathsPanel() {
     row.className='path-row'+(S.activeView?.type==='path'&&S.activeView?.id===p.id?' active':'');
     row.innerHTML=`<div class="path-label">${escHtml(names)}</div>
       <button class="path-del" onclick="event.stopPropagation();removePath(${p.id})">✕</button>`;
-    row.onclick = () => { S.activeView={type:'path',id:p.id}; showPathProfile(p.id); renderChartTabs(); };
+    row.onclick = () => { S.activeView={type:'path',id:p.id}; showPathProfile(p.id); renderChartTabs(); renderPathsPanel(); renderResults(); };
     panel.appendChild(row);
   });
   document.getElementById('pathCount').textContent = S.paths.length;
@@ -927,7 +962,7 @@ async function runAnalysis(){
         terrainErrors++;
         e.result={dist,status:'error',error:err.message||'Terrain lookup failed'};
         e.profile=null;
-        if(e.line) e.line.setStyle({color:'#e74c3c',weight:2,opacity:.8,dashArray:'3 5'});
+        if(e.line) e.line.setStyle(edgeBaseStyle(e));
         renderResults();
         renderEdgesPanel();
         if(terrainErrors>=MAX_TERRAIN_ERRORS){
@@ -962,8 +997,7 @@ async function runAnalysis(){
       e.profile={elevs,dists,dist,aH,bH,a,b,freq,K,N};
 
       // Colour the line on map
-      const col=status==='clear'?'#2ecc71':status==='marginal'?'#f39c12':'#e74c3c';
-      if(e.line) e.line.setStyle({color:col,weight:3,opacity:.9,dashArray:''});
+      if(e.line) e.line.setStyle(edgeBaseStyle(e));
     }
 
     if(terrainErrors<MAX_TERRAIN_ERRORS) hideToast();
@@ -988,6 +1022,7 @@ async function runAnalysis(){
       clearCanvas();
     }
     renderPathsPanel();
+    highlightActiveMapView();
   }finally{
     S._analysing=false;
   }
@@ -1070,6 +1105,7 @@ function showEdgeProfile(edgeId){
   const title=`${a.name} ↔ ${b.name}  |  ${(dist/1000).toFixed(2)} km  |  GND+ANT: ${aH.toFixed(1)}m → ${bH.toFixed(1)}m`;
   document.getElementById('chartTitle').textContent=title;
   drawProfile({elevs,dists,dist,aH,bH,freq,K,N,result:r,labels:[a.name,b.name]});
+  highlightActiveMapView();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1078,6 +1114,7 @@ function showEdgeProfile(edgeId){
 function showPathProfile(pathId){
   const path=S.paths.find(p=>p.id===pathId);
   if(!path) return;
+  highlightActiveMapView();
 
   // Collect edges in order — each consecutive pair of nodeIds
   const hops=[];
