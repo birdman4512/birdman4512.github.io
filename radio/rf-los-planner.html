@@ -9,6 +9,7 @@
 <title>RF Line of Sight Planner</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -218,7 +219,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260523-7">BUILD 20260523-7</span>
+      <span class="hdr-tag" title="Build 20260523-8">BUILD 20260523-8</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -307,7 +308,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260523-7';
+const BUILD_ID='20260523-8';
 if(!new URLSearchParams(window.location.search).has('v')){
   window.location.replace(`${window.location.pathname}?v=${BUILD_ID}${window.location.hash}`);
 }
@@ -1516,15 +1517,17 @@ function clearCanvas(){
 //  SHARE via URL hash
 // ═══════════════════════════════════════════════════════════
 function openShare(){
+  // Compact v2 schema: short keys + array-indexed refs, then LZ-string compress
+  const idx=new Map(S.nodes.map((n,i)=>[n.id,i]));
   const data={
-    freq:document.getElementById('inpFreq').value,
+    v:2,
+    f:+document.getElementById('inpFreq').value,
     k:document.getElementById('inpK').value,
-    nodes:S.nodes.map(n=>({id:n.id,name:n.name,lat:+n.lat.toFixed(6),lng:+n.lng.toFixed(6),antH:n.antH})),
-    edges:S.edges.map(e=>({id:e.id,aId:e.aId,bId:e.bId})),
-    paths:S.paths.map(p=>({id:p.id,name:p.name,nodeIds:p.nodeIds})),
-    nextId:S.nextId
+    n:S.nodes.map(n=>[+n.lat.toFixed(6),+n.lng.toFixed(6),n.antH,n.name]),
+    e:S.edges.map(e=>[idx.get(e.aId),idx.get(e.bId)]),
+    p:S.paths.map(p=>[p.name,...p.nodeIds.map(id=>idx.get(id))])
   };
-  const hash=btoa(encodeURIComponent(JSON.stringify(data)));
+  const hash='v2:'+LZString.compressToEncodedURIComponent(JSON.stringify(data));
   const url=window.location.href.split('#')[0]+'#'+hash;
   document.getElementById('shareUrl').textContent=url;
   document.getElementById('shareModal').classList.add('open');
@@ -1564,7 +1567,26 @@ function loadFromHash(){
   const hash=window.location.hash.slice(1);
   if(!hash) return;
   try{
-    const data=JSON.parse(decodeURIComponent(atob(hash)));
+    let data;
+    if(hash.startsWith('v2:')){
+      const raw=JSON.parse(LZString.decompressFromEncodedURIComponent(hash.slice(3)));
+      // Re-assign IDs and expand compact arrays → internal shape
+      let id=1;
+      const nIds=raw.n.map(()=>id++);
+      const eIds=raw.e.map(()=>id++);
+      const pIds=raw.p.map(()=>id++);
+      data={
+        freq:raw.f,
+        k:raw.k,
+        nodes:raw.n.map((nd,i)=>({id:nIds[i],lat:nd[0],lng:nd[1],antH:nd[2],name:nd[3]})),
+        edges:raw.e.map((ed,i)=>({id:eIds[i],aId:nIds[ed[0]],bId:nIds[ed[1]]})),
+        paths:raw.p.map((p,i)=>({id:pIds[i],name:p[0],nodeIds:p.slice(1).map(j=>nIds[j])})),
+        nextId:id
+      };
+    }else{
+      // Legacy v1 format
+      data=JSON.parse(decodeURIComponent(atob(hash)));
+    }
     document.getElementById('inpFreq').value=data.freq||915;
     document.getElementById('inpK').value=data.k||'1.333';
     S.nextId=data.nextId||1;
