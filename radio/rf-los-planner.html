@@ -170,6 +170,31 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 <!-- Context Menu -->
 <div id="ctxMenu"><div class="ctx-header" id="ctxTitle">MAP</div></div>
 
+<!-- Help Modal -->
+<div class="modal-bg" id="helpModal">
+  <div class="modal" style="max-width:560px">
+    <h2>📡 Getting Started</h2>
+    <ol style="line-height:1.65;font-size:13px;color:var(--text);padding-left:22px;margin-bottom:14px">
+      <li><strong>Add nodes</strong> — right-click anywhere on the map → "Add node here". Each node is a transmitter or receiver. Click the ◎ button to centre on your current location first.</li>
+      <li><strong>Set antenna height</strong> — in the sidebar, edit each node's <em>ANT HT</em> (metres above ground). Default is 6 m.</li>
+      <li><strong>Link nodes</strong> — right-click a node marker → "Connect to …" to add a radio link. Links automatically join into paths.</li>
+      <li><strong>Pick a band</strong> — top of the sidebar, choose a radio preset (Meshtastic AU 915 MHz by default) or enter a custom frequency.</li>
+      <li><strong>Analyse</strong> — click <strong>▶ ANALYSE</strong>. Terrain elevation is fetched along each link and the line-of-sight + 1st Fresnel zone are drawn below the map.</li>
+    </ol>
+    <p style="font-size:12px;color:var(--muted);line-height:1.5">
+      <strong style="color:var(--green)">✓ CLEAR</strong> — LOS and Fresnel zone clear.&nbsp;
+      <strong style="color:var(--orange)">⚠ MARGINAL</strong> — LOS clear but Fresnel obstructed.&nbsp;
+      <strong style="color:var(--red)">✕ BLOCKED</strong> — terrain in the way.
+    </p>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5">
+      Tip: right-click a link on the map to delete it. Use <strong>⇪ SHARE</strong> to copy a URL containing your full setup.
+    </p>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn primary" onclick="closeHelp()">GOT IT</button>
+    </div>
+  </div>
+</div>
+
 <!-- Share Modal -->
 <div class="modal-bg" id="shareModal">
   <div class="modal">
@@ -187,6 +212,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
     <div class="hdr-tag">RF</div>
     <h1>Multi-Hop <em>Line of Sight</em></h1>
     <div class="hdr-right">
+      <button class="btn" onclick="openHelp()">? HELP</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
@@ -199,9 +225,22 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <!-- RF Params -->
       <div class="sb-section">
         <div class="section-label">RF Parameters</div>
+        <div class="field-row" style="margin-bottom:5px">
+          <label>Preset</label>
+          <select id="inpPreset" onchange="applyPreset()" style="flex:1;min-width:0">
+            <option value="915">Meshtastic AU/US (915 MHz)</option>
+            <option value="868">Meshtastic EU (868 MHz)</option>
+            <option value="433">Meshtastic Asia (433 MHz)</option>
+            <option value="146">2m VHF (146 MHz)</option>
+            <option value="438">70cm UHF (438 MHz)</option>
+            <option value="2400">2.4 GHz Wi-Fi</option>
+            <option value="5800">5.8 GHz Wi-Fi</option>
+            <option value="">Custom</option>
+          </select>
+        </div>
         <div class="field-row">
           <label>Freq (MHz)</label>
-          <input type="number" id="inpFreq" value="900" min="1" style="width:70px">
+          <input type="number" id="inpFreq" value="915" min="1" style="width:70px" oninput="syncPresetFromFreq()">
           <label>K-Factor</label>
           <select id="inpK" style="width:60px">
             <option value="1.333">4/3</option>
@@ -220,7 +259,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 
       <!-- Edges -->
       <div class="sb-section" style="padding:5px 11px">
-        <div class="section-label" style="margin-bottom:0">LINKS <span id="edgeCount" style="color:var(--accent)">0</span> <span style="color:var(--muted);font-size:8px">(right-click node → connect)</span></div>
+        <div class="section-label" style="margin-bottom:0">LINKS <span id="edgeCount" style="color:var(--accent)">0</span> <span style="color:var(--muted);font-size:8px">(right-click node to connect · right-click link to delete)</span></div>
       </div>
       <div class="edges-panel" id="edgesPanel"><div class="no-data">No links yet.</div></div>
 
@@ -403,6 +442,7 @@ function addEdge(aId, bId) {
   S.edges.push(edge);
   const a = S.nodes.find(n=>n.id===aId), b = S.nodes.find(n=>n.id===bId);
   edge.line = L.polyline([[a.lat,a.lng],[b.lat,b.lng]], { color:'#4a6278', weight:2, opacity:.7, dashArray:'5 4' }).addTo(S.map);
+  attachEdgeHandlers(edge);
   renderEdgesPanel();
   document.getElementById('edgeCount').textContent = S.edges.length;
 
@@ -672,6 +712,23 @@ function showNodeCtx(cx,cy,node){
     {icon:'🗑',label:`Delete "${node.name}"`,danger:true,action:()=>removeNode(node.id)},
   ];
   buildCtx(`NODE ${idx+1}`,items); posCtx(cx,cy);
+}
+
+function showEdgeCtx(cx,cy,edge){
+  const a=S.nodes.find(n=>n.id===edge.aId), b=S.nodes.find(n=>n.id===edge.bId);
+  const items=[
+    {icon:'🗑',label:`Delete link ${a?.name||'?'} ↔ ${b?.name||'?'}`,danger:true,action:()=>removeEdge(edge.id)},
+  ];
+  buildCtx('LINK',items); posCtx(cx,cy);
+}
+
+function attachEdgeHandlers(edge){
+  if(!edge.line) return;
+  edge.line.on('contextmenu',e=>{
+    L.DomEvent.preventDefault(e.originalEvent);
+    L.DomEvent.stopPropagation(e.originalEvent);
+    showEdgeCtx(e.originalEvent.clientX,e.originalEvent.clientY,edge);
+  });
 }
 
 function insertNodeAt(idx){
@@ -1207,6 +1264,31 @@ function copyShareUrl(){
   navigator.clipboard.writeText(url).then(()=>{toast('Link copied!',2000);closeShare();}).catch(()=>{toast('Copy failed — select & copy manually.',3000);});
 }
 
+// ═══════════════════════════════════════════════════════════
+//  HELP
+// ═══════════════════════════════════════════════════════════
+function openHelp(){document.getElementById('helpModal').classList.add('open');}
+function closeHelp(){
+  document.getElementById('helpModal').classList.remove('open');
+  try{localStorage.setItem('rfLosHelpSeen','1');}catch{}
+}
+function maybeShowHelp(){
+  try{if(!localStorage.getItem('rfLosHelpSeen')&&!window.location.hash) openHelp();}catch{}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FREQUENCY PRESETS
+// ═══════════════════════════════════════════════════════════
+function applyPreset(){
+  const v=document.getElementById('inpPreset').value;
+  if(v) document.getElementById('inpFreq').value=v;
+}
+function syncPresetFromFreq(){
+  const f=document.getElementById('inpFreq').value;
+  const sel=document.getElementById('inpPreset');
+  sel.value=[...sel.options].some(o=>o.value===f)?f:'';
+}
+
 function loadFromHash(){
   const hash=window.location.hash.slice(1);
   if(!hash) return;
@@ -1229,6 +1311,7 @@ function loadFromHash(){
       if(!a||!b) return;
       const edge={id:ed.id,aId:ed.aId,bId:ed.bId,line:null,result:null,profile:null};
       edge.line=L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#4a6278',weight:2,opacity:.7,dashArray:'5 4'}).addTo(S.map);
+      attachEdgeHandlers(edge);
       S.edges.push(edge);
     });
     // Restore paths
@@ -1272,7 +1355,7 @@ window.addEventListener('load',()=>{
   initMap();
   renderNodeList();
   setTimeout(()=>S.map.invalidateSize(),200);
-  setTimeout(()=>{S.map.invalidateSize();loadFromHash();},600);
+  setTimeout(()=>{S.map.invalidateSize();loadFromHash();syncPresetFromFreq();maybeShowHelp();},600);
 });
 window.addEventListener('resize',()=>{
   if(S.map) S.map.invalidateSize();
