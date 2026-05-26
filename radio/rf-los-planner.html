@@ -355,7 +355,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openSettings()">⚙ SETTINGS</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260526-3">BUILD 20260526-3</span>
+      <span class="hdr-tag" title="Build 20260527-1">BUILD 20260527-1</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -507,6 +507,7 @@ function makeMarker(node) {
   });
   marker.on('dragend', () => {
     node.elev = null; invalidateEdgesForNode(node.id); fetchElev(node);
+    invalidateNodeCoverage(node, true);
     // Re-analyse all links whenever a node is dragged
     if (S.edges.length > 0) runAnalysis();
   });
@@ -782,7 +783,7 @@ function renderNodeList() {
     card.style.borderLeftColor = c;
     const rf = effectiveRf(node);
     const covBtnClass = !node.coverageComputed ? '' : (node.coverageDirty ? 'dirty' : 'ok');
-    const covBtnLabel = !node.coverageComputed ? 'COMPUTE' : (node.coverageDirty ? 'RECOMPUTE' : 'OK');
+    const covBtnLabel = !node.coverageComputed ? 'COMPUTE' : (node.coverageDirty ? 'RECOMPUTE' : '✓ RECOMPUTE');
     card.innerHTML = `
       <div class="wp-row1">
         <div class="wp-num" style="color:${c};border-color:${c}">${idx+1}</div>
@@ -1293,7 +1294,7 @@ function updateCovBtn(node){
   b.classList.remove('dirty','ok');
   if(!node.coverageComputed) b.textContent = 'COMPUTE';
   else if(node.coverageDirty){ b.textContent = 'RECOMPUTE'; b.classList.add('dirty'); }
-  else { b.textContent = 'OK'; b.classList.add('ok'); }
+  else { b.textContent = '✓ RECOMPUTE'; b.classList.add('ok'); }
   const st = document.getElementById(`covStat_${node.id}`);
   if(st) st.textContent = node.coverageComputed ? (node.coverageDirty ? 'stale' : 'cached') : '';
 }
