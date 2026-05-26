@@ -175,6 +175,40 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 /* leaflet marker */
 .lf-marker{background:none!important;border:none!important}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── COVERAGE ── */
+.wp-cov{display:flex;align-items:center;gap:5px;margin-top:4px;padding-top:4px;border-top:1px dashed rgba(74,98,120,.35)}
+.wp-cov label{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px}
+.wp-cov input[type=checkbox]{accent-color:var(--accent);width:11px;height:11px;margin:0;cursor:pointer}
+.wp-cov-btn{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;padding:2px 6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;text-transform:uppercase}
+.wp-cov-btn:hover{border-color:var(--accent);color:var(--accent)}
+.wp-cov-btn.dirty{border-color:var(--orange);color:var(--orange)}
+.wp-cov-btn.ok{border-color:var(--green);color:var(--green)}
+.wp-cov-btn:disabled{opacity:.4;cursor:wait}
+.wp-cov-status{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);margin-left:auto}
+.wp-rf-toggle{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted);cursor:pointer;user-select:none;padding:3px 0 1px;border-top:1px dashed rgba(74,98,120,.35);margin-top:4px}
+.wp-rf-toggle:hover{color:var(--accent)}
+.wp-rf-toggle .chev{display:inline-block;width:8px;font-size:8px;transition:transform .15s}
+.wp-rf-toggle.open .chev{transform:rotate(90deg)}
+.wp-rf-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-top:3px}
+.wp-rf-body input{width:100%;font-size:10px;padding:3px 4px}
+.wp-rf-body label{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);display:block;margin-bottom:1px}
+.cov-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px}
+.cov-row label{font-size:11px;color:var(--muted)}
+.cov-btn-row{display:flex;gap:5px;margin-top:6px}
+.cov-btn-row .btn{flex:1;font-size:10px;padding:5px}
+
+/* ── SETTINGS MODAL + SUMMARY ── */
+.settings-group{border:1px solid var(--border);padding:10px 12px;margin-bottom:12px;background:rgba(11,15,23,.5)}
+.settings-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.settings-summary{display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;cursor:pointer;padding:4px 0;user-select:none}
+.settings-summary:hover{color:var(--accent)}
+.ss-band{color:var(--accent)}
+.ss-budget{color:var(--text)}
+.ss-cov{color:var(--orange)}
+.ss-sep{color:var(--border)}
+.ss-gear{margin-left:auto;font-size:14px;color:var(--muted)}
+.settings-summary:hover .ss-gear{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -192,6 +226,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <li><strong>Link nodes</strong> — right-click a node marker → "Connect to …" to add a radio link. Links automatically join into paths.</li>
       <li><strong>Pick a band</strong> — top of the sidebar, choose a radio preset (Meshtastic AU 915 MHz by default) or enter a custom frequency.</li>
       <li><strong>Analyse</strong> — click <strong>▶ ANALYSE</strong>. Terrain elevation is fetched along each link and the line-of-sight + 1st Fresnel zone are drawn below the map.</li>
+      <li><strong>Coverage layer</strong> — set TX power / antenna gain / RX sensitivity (defaults seeded from the preset), tick the <em>COVERAGE</em> box on a node, then click <em>COMPUTE</em>. A terrain-aware coverage polygon is drawn. Use <em>ALL ON / ALL OFF</em> to toggle every node at once.</li>
     </ol>
     <p style="font-size:12px;color:var(--muted);line-height:1.5">
       <strong style="color:var(--green)">✓ CLEAR</strong> — LOS and Fresnel zone clear.&nbsp;
@@ -199,7 +234,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <strong style="color:var(--red)">✕ BLOCKED</strong> — terrain in the way.
     </p>
     <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5">
-      Tip: right-click a link on the map to delete it. Use <strong>⇪ SHARE</strong> to copy a URL containing your full setup.
+      Tip: terrain is fetched from AWS Open Terrain Tiles (~30 m global) — no API key, cached in-memory once loaded. Right-click a link on the map to delete it. Use <strong>⇪ SHARE</strong> to copy a URL containing your full setup.
     </p>
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn primary" onclick="closeHelp()">GOT IT</button>
@@ -219,15 +254,106 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
   </div>
 </div>
 
+<!-- Settings Modal (RF Parameters + Coverage) -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal" style="min-width:500px;max-width:560px">
+    <h2>⚙ RF + Coverage Settings</h2>
+
+    <div class="settings-group">
+      <div class="settings-label">RF Parameters</div>
+      <div class="field-row" style="margin-bottom:6px">
+        <label>Preset</label>
+        <select id="inpPreset" onchange="applyPreset()" style="flex:1;min-width:0">
+          <option value="915">Meshtastic AU/US (915 MHz)</option>
+          <option value="868">Meshtastic EU (868 MHz)</option>
+          <option value="433">Meshtastic Asia (433 MHz)</option>
+          <option value="146">2m VHF (146 MHz)</option>
+          <option value="438">70cm UHF (438 MHz)</option>
+          <option value="2400">2.4 GHz Wi-Fi</option>
+          <option value="5800">5.8 GHz Wi-Fi</option>
+          <option value="">Custom</option>
+        </select>
+      </div>
+      <div class="field-row" style="margin-bottom:6px">
+        <label>Freq (MHz)</label>
+        <input type="number" id="inpFreq" value="915" min="1" style="width:78px" oninput="syncPresetFromFreq()">
+        <label>K-Factor</label>
+        <select id="inpK" style="width:64px">
+          <option value="1.333">4/3</option>
+          <option value="1.0">1.0</option>
+          <option value="0.667">2/3</option>
+        </select>
+      </div>
+      <div class="field-row" style="margin-bottom:6px">
+        <label>TX (dBm)</label>
+        <input type="number" id="inpTx" value="22" step="0.5" style="width:60px" onchange="onGlobalRfChanged()">
+        <label>Gain (dBi)</label>
+        <input type="number" id="inpGain" value="2" step="0.5" style="width:60px" onchange="onGlobalRfChanged()">
+      </div>
+      <div class="field-row">
+        <label>RX Sens (dBm)</label>
+        <input type="number" id="inpRx" value="-130" step="1" style="width:68px" onchange="onGlobalRfChanged()">
+        <label>Margin (dB)</label>
+        <input type="number" id="inpMargin" value="0" step="0.5" style="width:60px" onchange="onGlobalRfChanged()">
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-label">Coverage <span id="covCount" style="color:var(--accent)">0</span> active</div>
+      <div class="field-row" style="margin-bottom:6px">
+        <label>RX Ant (m)</label>
+        <input type="number" id="inpRxAntH" value="2" step="0.5" min="0" style="width:58px">
+        <label>Max (km)</label>
+        <input type="number" id="inpCovMaxKm" value="30" step="1" min="1" max="100" style="width:58px" title="Cap the search radius. Larger = slower compute + more tile downloads.">
+      </div>
+      <div class="field-row" style="margin-bottom:6px">
+        <label>Rays</label>
+        <select id="inpCovRays" style="width:64px">
+          <option value="24">24</option>
+          <option value="36" selected>36</option>
+          <option value="72">72</option>
+        </select>
+        <label>Samples / ray</label>
+        <select id="inpCovSamples" style="width:60px" title="Samples per ray — fewer = faster but coarser">
+          <option value="30">30</option>
+          <option value="50" selected>50</option>
+          <option value="80">80</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label>Fresnel clearance</label>
+        <select id="inpCovFresnel" style="width:120px">
+          <option value="0">0 (LOS only)</option>
+          <option value="0.6" selected>60%</option>
+          <option value="1">100%</option>
+        </select>
+      </div>
+      <div class="cov-btn-row" style="margin-top:10px">
+        <button class="btn" onclick="setAllCoverage(true)">ALL ON</button>
+        <button class="btn" onclick="setAllCoverage(false)">ALL OFF</button>
+        <button class="btn primary" onclick="computeAllCoverage()">▶ COMPUTE ALL</button>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);margin-top:6px;letter-spacing:1px;line-height:1.4">
+        Compute downloads terrain tiles (AWS Open Terrain, ~30 m global). Toggle ON/OFF is instant once cached.
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn primary" onclick="closeSettings()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
   <header>
     <div class="hdr-tag">RF</div>
     <h1>Multi-Hop <em>Line of Sight</em></h1>
     <div class="hdr-right">
       <button class="btn" onclick="openHelp()">? HELP</button>
+      <button class="btn" onclick="openSettings()">⚙ SETTINGS</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260524-2">BUILD 20260524-2</span>
+      <span class="hdr-tag" title="Build 20260526-2">BUILD 20260526-2</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -235,33 +361,15 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
   <div class="body-row">
     <div class="sidebar">
 
-      <!-- RF Params -->
-      <div class="sb-section">
-        <div class="section-label sb-toggle" data-sb="rf"><span class="sb-chev">▾</span>RF Parameters</div>
-        <div data-sb-body="rf">
-          <div class="field-row" style="margin-bottom:5px">
-            <label>Preset</label>
-            <select id="inpPreset" onchange="applyPreset()" style="flex:1;min-width:0">
-              <option value="915">Meshtastic AU/US (915 MHz)</option>
-              <option value="868">Meshtastic EU (868 MHz)</option>
-              <option value="433">Meshtastic Asia (433 MHz)</option>
-              <option value="146">2m VHF (146 MHz)</option>
-              <option value="438">70cm UHF (438 MHz)</option>
-              <option value="2400">2.4 GHz Wi-Fi</option>
-              <option value="5800">5.8 GHz Wi-Fi</option>
-              <option value="">Custom</option>
-            </select>
-          </div>
-          <div class="field-row">
-            <label>Freq (MHz)</label>
-            <input type="number" id="inpFreq" value="915" min="1" style="width:70px" oninput="syncPresetFromFreq()">
-            <label>K-Factor</label>
-            <select id="inpK" style="width:60px">
-              <option value="1.333">4/3</option>
-              <option value="1.0">1.0</option>
-              <option value="0.667">2/3</option>
-            </select>
-          </div>
+      <!-- Compact summary bar (open SETTINGS for RF + coverage controls) -->
+      <div class="sb-section" style="padding:8px 11px">
+        <div class="settings-summary" onclick="openSettings()" title="Click to open RF + Coverage settings">
+          <span class="ss-band" id="ssBand">915 MHz</span>
+          <span class="ss-sep">·</span>
+          <span class="ss-budget" id="ssBudget">22 dBm / +2 dBi</span>
+          <span class="ss-sep">·</span>
+          <span class="ss-cov"><span id="ssCovCount">0</span> COV</span>
+          <span class="ss-gear">⚙</span>
         </div>
       </div>
 
@@ -322,7 +430,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
 </div>
 
 <script>
-const BUILD_ID='20260524-2';
+const BUILD_ID='20260526-1';
 // ═══════════════════════════════════════════════════════════
 //  STATE
 //  Graph model: nodes (waypoints) + edges (links between any two)
@@ -330,18 +438,15 @@ const BUILD_ID='20260524-2';
 // ═══════════════════════════════════════════════════════════
 const S = {
   map: null,
-  nodes: [],       // {id, name, lat, lng, antH, elev, marker}
+  nodes: [],       // {id, name, lat, lng, antH, elev, marker, rfOverride, txDbm, gainDbi, rxDbm, coverageOn, coverageLayer, coverageDirty, coverageComputed}
   edges: [],       // {id, aId, bId, line, result, profile}
   paths: [],       // {id, name, nodeIds[]}  — user-defined chains for chart
   nextId: 1,
   activeView: null, // {type:'edge'|'path', id}
   elevCache: {},
   profileCache: {},
+  _coverageComputing: false,
   _analysing: false,
-  _elevQueue: Promise.resolve(),
-  _lastElevRequest: 0,
-  _openMeteoCooldownUntil: 0,
-  _lastFallbackElevRequest: 0,
   hoverMarker: null,
   profileHover: null,
   redrawProfile: null,
@@ -379,7 +484,9 @@ const DEFAULT_NAMES = ['Site A','Site B','Site C','Site D','Relay 1','Relay 2','
 
 function addNode(lat, lng) {
   const idx = S.nodes.length;
-  const node = { id: S.nextId++, name: DEFAULT_NAMES[idx] || `Node ${idx+1}`, lat, lng, antH: 6, elev: null, marker: null };
+  const node = { id: S.nextId++, name: DEFAULT_NAMES[idx] || `Node ${idx+1}`, lat, lng, antH: 6, elev: null, marker: null,
+    rfOverride: false, txDbm: null, gainDbi: null, rxDbm: null,
+    coverageOn: false, coverageLayer: null, coverageDirty: true, coverageComputed: false };
   S.nodes.push(node);
   node.marker = makeMarker(node);
   renderNodeList();
@@ -420,12 +527,19 @@ function buildIcon(node) {
 }
 
 function refreshAllIcons() {
-  S.nodes.forEach(n => { if (n.marker) n.marker.setIcon(buildIcon(n)); });
+  S.nodes.forEach((n, i) => {
+    if (n.marker) n.marker.setIcon(buildIcon(n));
+    if (n.coverageLayer){
+      const c = nodeColor(i);
+      n.coverageLayer.setStyle({color:c, fillColor:c});
+    }
+  });
 }
 
 function removeNode(id) {
   const idx = S.nodes.findIndex(n => n.id === id);
   if (idx < 0) return;
+  if (S.nodes[idx].coverageLayer) S.map.removeLayer(S.nodes[idx].coverageLayer);
   S.map.removeLayer(S.nodes[idx].marker);
   S.nodes.splice(idx, 1);
   // Remove all edges involving this node
@@ -443,9 +557,13 @@ function removeNode(id) {
 }
 
 function clearAll() {
-  S.nodes.forEach(n => { if (n.marker) S.map.removeLayer(n.marker); });
+  S.nodes.forEach(n => {
+    if (n.marker) S.map.removeLayer(n.marker);
+    if (n.coverageLayer) S.map.removeLayer(n.coverageLayer);
+  });
   S.edges.forEach(e => { if (e.line) S.map.removeLayer(e.line); });
   S.nodes = []; S.edges = []; S.paths = [];
+  updateCovCount();
   renderNodeList(); renderEdgesPanel(); renderPathsPanel();
   document.getElementById('resultsArea').innerHTML = '<div class="no-data">Add nodes, links, then analyse.</div>';
   renderChartTabs(); clearCanvas();
@@ -660,6 +778,9 @@ function renderNodeList() {
     const card = document.createElement('div');
     card.className = 'wp-card'; card.draggable = true; card.dataset.id = node.id;
     card.style.borderLeftColor = c;
+    const rf = effectiveRf(node);
+    const covBtnClass = !node.coverageComputed ? '' : (node.coverageDirty ? 'dirty' : 'ok');
+    const covBtnLabel = !node.coverageComputed ? 'COMPUTE' : (node.coverageDirty ? 'RECOMPUTE' : 'OK');
     card.innerHTML = `
       <div class="wp-row1">
         <div class="wp-num" style="color:${c};border-color:${c}">${idx+1}</div>
@@ -677,6 +798,20 @@ function renderNodeList() {
         <input type="number" step="0.5" min="0" value="${node.antH}" onchange="setNodeAntH(${node.id},+this.value)"/>
         <div class="wp-elev">GND:<span id="elev_${node.id}">${node.elev!==null?node.elev.toFixed(1)+'m':'…'}</span></div>
         <div class="wp-amsl">AMSL:<span id="amsl_${node.id}">${amsl}</span></div>
+      </div>
+      <div class="wp-cov">
+        <input type="checkbox" id="cov_${node.id}" ${node.coverageOn?'checked':''} onchange="setNodeCoverageOn(${node.id},this.checked)"/>
+        <label for="cov_${node.id}" style="cursor:pointer">COVERAGE</label>
+        <button class="wp-cov-btn ${covBtnClass}" id="covBtn_${node.id}" onclick="computeNodeCoverage(${node.id})">${covBtnLabel}</button>
+        <span class="wp-cov-status" id="covStat_${node.id}">${node.coverageComputed?'cached':''}</span>
+      </div>
+      <div class="wp-rf-toggle ${node.rfOverride?'open':''}" onclick="toggleNodeRfOverride(${node.id})">
+        <span class="chev">▸</span> RF OVERRIDE ${node.rfOverride?'(custom)':'(using global)'}
+      </div>
+      <div class="wp-rf-body" id="rfBody_${node.id}" ${node.rfOverride?'':'style="display:none"'}>
+        <div><label>TX dBm</label><input type="number" step="0.5" value="${rf.tx}" onchange="setNodeRf(${node.id},'txDbm',+this.value)"/></div>
+        <div><label>Gain dBi</label><input type="number" step="0.5" value="${rf.gain}" onchange="setNodeRf(${node.id},'gainDbi',+this.value)"/></div>
+        <div><label>RX dBm</label><input type="number" step="1" value="${rf.rx}" onchange="setNodeRf(${node.id},'rxDbm',+this.value)"/></div>
       </div>`;
     card.addEventListener('dragstart', e => { e.dataTransfer.effectAllowed='move'; S._dragId=node.id; });
     card.addEventListener('dragend', () => { S._dragId=null; document.querySelectorAll('.wp-card').forEach(c=>c.classList.remove('drag-over')); });
@@ -752,10 +887,12 @@ function setNodeCoord(id, field, val) {
   node[field]=val; node.elev=null;
   if(node.marker) node.marker.setLatLng([node.lat,node.lng]);
   redrawEdgeLines(); invalidateEdgesForNode(id); fetchElev(node);
+  invalidateNodeCoverage(node);
 }
 function setNodeAntH(id, val) {
   const node=S.nodes.find(n=>n.id===id); if(!node) return;
   node.antH=val; updateAmslDisplay(node); invalidateEdgesForNode(id);
+  invalidateNodeCoverage(node);
 }
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 
@@ -837,7 +974,9 @@ function attachEdgeHandlers(edge){
 
 function insertNodeAt(idx){
   const ref=S.nodes[Math.min(idx,S.nodes.length-1)];
-  const node={id:S.nextId++,name:DEFAULT_NAMES[S.nodes.length]||`Node ${S.nodes.length+1}`,lat:ref.lat+0.003,lng:ref.lng+0.003,antH:6,elev:null,marker:null};
+  const node={id:S.nextId++,name:DEFAULT_NAMES[S.nodes.length]||`Node ${S.nodes.length+1}`,lat:ref.lat+0.003,lng:ref.lng+0.003,antH:6,elev:null,marker:null,
+    rfOverride:false,txDbm:null,gainDbi:null,rxDbm:null,
+    coverageOn:false,coverageLayer:null,coverageDirty:true,coverageComputed:false};
   S.nodes.splice(idx,0,node);
   node.marker=makeMarker(node);
   refreshAllIcons(); renderNodeList(); fetchElev(node);
@@ -848,6 +987,9 @@ document.addEventListener('click',e=>{if(!ctxMenu.contains(e.target))closeCtx();
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape') return;
   if(ctxMenu.style.display==='block'){closeCtx();return;}
+  if(document.getElementById('settingsModal')?.classList.contains('open')){closeSettings();return;}
+  if(document.getElementById('shareModal')?.classList.contains('open')){closeShare();return;}
+  if(document.getElementById('helpModal')?.classList.contains('open')){closeHelp();return;}
   const t=e.target;
   if(t&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
   if(S.activeView) clearActiveView();
@@ -872,71 +1014,96 @@ function goToMyLocation(){
 function var_accent(){return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#00c8f0';}
 
 // ═══════════════════════════════════════════════════════════
-//  ELEVATION
+//  ELEVATION — AWS Open Terrain Tiles (Terrarium PNG encoding)
+//  Tiles are fetched once and decoded to Float32 elevation grids.
+//  No API key, no rate limit, ~30 m global resolution.
 // ═══════════════════════════════════════════════════════════
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const TERRAIN_TILE_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+const TERRAIN_Z = 12;            // ~38 m / pixel at the equator
+const TILE_SIZE = 256;
+const _tileCache = new Map();    // key "z/x/y" → Promise<Float32Array(256*256)>
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function getElevationBatch(lats,lngs){
-  let primaryErr=null;
-  if(Date.now()<S._openMeteoCooldownUntil){
-    toast('Open-Meteo is rate limited. Using Open-Elevation...');
-  }else{
-    try{
-      return await openMeteoElev(lats,lngs);
-    }catch(err){
-      primaryErr=err;
-      toast('Open-Meteo elevation unavailable. Trying Open-Elevation...');
+function lng2tileX(lng, z){ return (lng + 180) / 360 * Math.pow(2, z); }
+function lat2tileY(lat, z){
+  const r = lat * Math.PI / 180;
+  return (1 - Math.log(Math.tan(r) + 1/Math.cos(r)) / Math.PI) / 2 * Math.pow(2, z);
+}
+
+function loadTile(z, x, y){
+  const key = `${z}/${x}/${y}`;
+  if(_tileCache.has(key)) return _tileCache.get(key);
+  const p = new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try{
+        const cvs = document.createElement('canvas');
+        cvs.width = TILE_SIZE; cvs.height = TILE_SIZE;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(img, 0, 0, TILE_SIZE, TILE_SIZE);
+        const data = ctx.getImageData(0, 0, TILE_SIZE, TILE_SIZE).data;
+        const out = new Float32Array(TILE_SIZE * TILE_SIZE);
+        for(let i = 0, j = 0; i < data.length; i += 4, j++){
+          out[j] = (data[i] * 256 + data[i+1] + data[i+2] / 256) - 32768;
+        }
+        resolve(out);
+      }catch(e){ reject(e); }
+    };
+    img.onerror = () => reject(new Error(`Tile load failed: ${key}`));
+    img.src = TERRAIN_TILE_URL.replace('{z}', z).replace('{x}', x).replace('{y}', y);
+  });
+  _tileCache.set(key, p);
+  return p;
+}
+
+async function tileElevAt(lat, lng, z = TERRAIN_Z){
+  const n = Math.pow(2, z);
+  const fx = lng2tileX(lng, z), fy = lat2tileY(lat, z);
+  const tx = ((Math.floor(fx) % n) + n) % n;
+  const ty = Math.max(0, Math.min(n - 1, Math.floor(fy)));
+  const grid = await loadTile(z, tx, ty);
+  // Bilinear interp within the tile
+  const px = (fx - Math.floor(fx)) * TILE_SIZE;
+  const py = (fy - Math.floor(fy)) * TILE_SIZE;
+  const x0 = Math.max(0, Math.min(TILE_SIZE - 1, Math.floor(px)));
+  const y0 = Math.max(0, Math.min(TILE_SIZE - 1, Math.floor(py)));
+  const x1 = Math.min(TILE_SIZE - 1, x0 + 1);
+  const y1 = Math.min(TILE_SIZE - 1, y0 + 1);
+  const dx = px - x0, dy = py - y0;
+  const e00 = grid[y0 * TILE_SIZE + x0];
+  const e10 = grid[y0 * TILE_SIZE + x1];
+  const e01 = grid[y1 * TILE_SIZE + x0];
+  const e11 = grid[y1 * TILE_SIZE + x1];
+  return e00 * (1-dx)*(1-dy) + e10 * dx*(1-dy) + e01 * (1-dx)*dy + e11 * dx*dy;
+}
+
+async function prefetchTilesForBbox(minLat, minLng, maxLat, maxLng, z = TERRAIN_Z){
+  const x0 = Math.floor(lng2tileX(minLng, z));
+  const x1 = Math.floor(lng2tileX(maxLng, z));
+  const y0 = Math.floor(lat2tileY(maxLat, z));   // y inverts at higher lat
+  const y1 = Math.floor(lat2tileY(minLat, z));
+  const promises = [];
+  const n = Math.pow(2, z);
+  for(let x = x0; x <= x1; x++){
+    for(let y = y0; y <= y1; y++){
+      const xx = ((x % n) + n) % n;
+      const yy = Math.max(0, Math.min(n - 1, y));
+      promises.push(loadTile(z, xx, yy));
     }
   }
-  try{
-    return await openElevationElev(lats,lngs);
-  }catch(fallbackErr){
-    const primaryMsg=primaryErr?.message||'Open-Meteo skipped while rate limited';
-    throw new Error(`${primaryMsg}; Open-Elevation fallback failed: ${fallbackErr.message}`);
-  }
+  await Promise.all(promises);
 }
 
-async function openMeteoElev(lats,lngs){
-  const url=`https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lngs.join(',')}`;
-  const job=S._elevQueue.catch(()=>{}).then(async()=>{
-    const sinceLast=Date.now()-S._lastElevRequest;
-    if(sinceLast<350) await sleep(350-sinceLast);
-    S._lastElevRequest=Date.now();
-    return requestOpenMeteoElev(url);
-  });
-  S._elevQueue=job.catch(()=>{});
-  return job;
-}
-
-async function requestOpenMeteoElev(url){
-  const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
-  if(r.ok) return (await r.json()).elevation;
-  if(r.status===429){
-    const retryAfter=Number(r.headers.get('Retry-After'));
-    const cooldownMs=Number.isFinite(retryAfter)&&retryAfter>0 ? retryAfter*1000 : 60000;
-    S._openMeteoCooldownUntil=Date.now()+cooldownMs;
-    throw new Error('Open-Meteo rate limit reached');
-  }
-  throw new Error(`Elevation lookup failed (HTTP ${r.status})`);
-}
-
-async function openElevationElev(lats,lngs){
-  const locations=lats.map((lat,i)=>`${lat},${lngs[i]}`).join('|');
-  const url=`https://api.open-elevation.com/api/v1/lookup?locations=${encodeURIComponent(locations)}`;
-  const sinceLast=Date.now()-S._lastFallbackElevRequest;
-  if(sinceLast<1000) await sleep(1000-sinceLast);
-  S._lastFallbackElevRequest=Date.now();
-  const r=await fetch(url,{signal:AbortSignal.timeout(15000)});
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  const data=await r.json();
-  if(!Array.isArray(data.results)||data.results.length!==lats.length) throw new Error('Incomplete elevation response');
-  return data.results.map(result=>result.elevation);
+// Kept for backward compatibility with the LOS analyser path
+async function getElevationBatch(lats, lngs){
+  return Promise.all(lats.map((lat, i) => tileElevAt(+lat, +lngs[i])));
 }
 
 async function fetchElevSingle(lat,lng){
   const key=`${(+lat).toFixed(5)},${(+lng).toFixed(5)}`;
   if(S.elevCache[key]!==undefined) return S.elevCache[key];
-  const [v]=await getElevationBatch([(+lat).toFixed(5)],[(+lng).toFixed(5)]);
+  const v=await tileElevAt(+lat,+lng);
   S.elevCache[key]=v??0; return S.elevCache[key];
 }
 
@@ -996,6 +1163,265 @@ function haversine(la1,lo1,la2,lo2){
 }
 function bulge(d1,d2,K){return d1*d2/(2*K*R_EARTH);}
 function fresnel1(d1,d2,fMHz){const lam=3e8/(fMHz*1e6);return Math.sqrt(lam*d1*d2/(d1+d2));}
+
+// Bearing → destination point on a sphere (great-circle).
+function destPoint(lat, lng, bearingDeg, distM){
+  const R = R_EARTH, br = bearingDeg * Math.PI / 180;
+  const ph1 = lat * Math.PI / 180, la1 = lng * Math.PI / 180;
+  const d = distM / R;
+  const ph2 = Math.asin(Math.sin(ph1)*Math.cos(d) + Math.cos(ph1)*Math.sin(d)*Math.cos(br));
+  const la2 = la1 + Math.atan2(Math.sin(br)*Math.sin(d)*Math.cos(ph1), Math.cos(d) - Math.sin(ph1)*Math.sin(ph2));
+  return [ph2 * 180 / Math.PI, ((la2 * 180 / Math.PI + 540) % 360) - 180];
+}
+
+// Friis free-space range (metres). Returns null if the link budget is non-positive.
+function friisRangeMeters(txDbm, gainTx, gainRx, rxSensDbm, fMHz, marginDb){
+  const allowed = txDbm + gainTx + gainRx - rxSensDbm - (marginDb || 0);
+  if(!isFinite(allowed) || allowed <= 0) return null;
+  // FSPL_dB = 20·log10(d_km) + 20·log10(fMHz) + 32.44
+  const logKm = (allowed - 20 * Math.log10(fMHz) - 32.44) / 20;
+  const m = Math.pow(10, logKm) * 1000;
+  return Math.max(50, Math.min(m, 500000)); // clamp 50 m … 500 km
+}
+
+// ═══════════════════════════════════════════════════════════
+//  COVERAGE  —  per-node radial sweep, polygon rendering
+// ═══════════════════════════════════════════════════════════
+const PRESET_RF = {
+  '915':  {tx:22, gain:2, rx:-130},
+  '868':  {tx:22, gain:2, rx:-130},
+  '433':  {tx:22, gain:2, rx:-130},
+  '146':  {tx:37, gain:0, rx:-120},
+  '438':  {tx:37, gain:0, rx:-120},
+  '2400': {tx:20, gain:2, rx:-85},
+  '5800': {tx:20, gain:3, rx:-80}
+};
+
+function globalRf(){
+  return {
+    freq: parseFloat(document.getElementById('inpFreq').value) || 915,
+    K: parseFloat(document.getElementById('inpK').value) || 1.333,
+    tx: parseFloat(document.getElementById('inpTx').value),
+    gain: parseFloat(document.getElementById('inpGain').value),
+    rx: parseFloat(document.getElementById('inpRx').value),
+    margin: parseFloat(document.getElementById('inpMargin').value) || 0,
+    rxAntH: parseFloat(document.getElementById('inpRxAntH').value) || 2,
+    rays: parseInt(document.getElementById('inpCovRays').value) || 36,
+    samples: parseInt(document.getElementById('inpCovSamples').value) || 50,
+    fresnelPct: parseFloat(document.getElementById('inpCovFresnel').value),
+    maxKm: Math.max(1, Math.min(100, parseFloat(document.getElementById('inpCovMaxKm').value) || 30))
+  };
+}
+
+function effectiveRf(node){
+  const g = globalRf();
+  if(node.rfOverride){
+    return {
+      tx:   node.txDbm   ?? g.tx,
+      gain: node.gainDbi ?? g.gain,
+      rx:   node.rxDbm   ?? g.rx
+    };
+  }
+  return {tx:g.tx, gain:g.gain, rx:g.rx};
+}
+
+function onGlobalRfChanged(){
+  // Any change to global TX/Gain/Sens/Margin invalidates non-overridden node coverage.
+  S.nodes.forEach(n => { if(!n.rfOverride) invalidateNodeCoverage(n, true); });
+  renderNodeList();
+  refreshSettingsSummary();
+}
+
+function applyPresetRf(presetVal){
+  const rf = PRESET_RF[presetVal];
+  if(!rf) return;
+  document.getElementById('inpTx').value = rf.tx;
+  document.getElementById('inpGain').value = rf.gain;
+  document.getElementById('inpRx').value = rf.rx;
+  onGlobalRfChanged();
+}
+
+function setNodeRf(id, field, val){
+  const node = S.nodes.find(n => n.id === id); if(!node) return;
+  node[field] = val;
+  invalidateNodeCoverage(node, true);
+  renderNodeList();
+}
+
+function toggleNodeRfOverride(id){
+  const node = S.nodes.find(n => n.id === id); if(!node) return;
+  node.rfOverride = !node.rfOverride;
+  if(node.rfOverride && node.txDbm == null){
+    const g = globalRf();
+    node.txDbm = g.tx; node.gainDbi = g.gain; node.rxDbm = g.rx;
+  }
+  invalidateNodeCoverage(node, true);
+  renderNodeList();
+}
+
+function invalidateNodeCoverage(node, redraw){
+  node.coverageDirty = true;
+  if(redraw && node.coverageLayer && node.coverageOn){
+    node.coverageLayer.setStyle({dashArray:'4 4', fillOpacity:0.05});
+  }
+  updateCovBtn(node);
+}
+
+function updateCovBtn(node){
+  const b = document.getElementById(`covBtn_${node.id}`);
+  if(!b) return;
+  b.classList.remove('dirty','ok');
+  if(!node.coverageComputed) b.textContent = 'COMPUTE';
+  else if(node.coverageDirty){ b.textContent = 'RECOMPUTE'; b.classList.add('dirty'); }
+  else { b.textContent = 'OK'; b.classList.add('ok'); }
+  const st = document.getElementById(`covStat_${node.id}`);
+  if(st) st.textContent = node.coverageComputed ? (node.coverageDirty ? 'stale' : 'cached') : '';
+}
+
+function setNodeCoverageOn(id, on){
+  const node = S.nodes.find(n => n.id === id); if(!node) return;
+  node.coverageOn = on;
+  if(node.coverageLayer){
+    if(on) node.coverageLayer.addTo(S.map);
+    else S.map.removeLayer(node.coverageLayer);
+  }
+  updateCovCount();
+}
+
+function setAllCoverage(on){
+  S.nodes.forEach(n => {
+    n.coverageOn = on;
+    if(n.coverageLayer){
+      if(on) n.coverageLayer.addTo(S.map);
+      else S.map.removeLayer(n.coverageLayer);
+    }
+    const cb = document.getElementById(`cov_${n.id}`); if(cb) cb.checked = on;
+  });
+  updateCovCount();
+}
+
+function updateCovCount(){
+  refreshSettingsSummary();
+}
+
+async function computeNodeCoverage(id){
+  if(S._coverageComputing){ toast('Coverage compute already running.', 2000); return; }
+  S._coverageComputing = true;
+  let node = null, btn = null;
+  try{
+    node = (typeof id === 'object') ? id : S.nodes.find(n => n.id === id);
+    if(!node) return;
+    btn = document.getElementById(`covBtn_${node.id}`);
+    if(btn){ btn.disabled = true; btn.textContent = '…'; }
+    await _computeNodeCoverageImpl(node);
+  }catch(err){
+    console.error('Coverage compute failed', err);
+    toast(`Coverage compute failed: ${err.message||err}`, 5000);
+  }finally{
+    S._coverageComputing = false;
+    if(btn) btn.disabled = false;
+    if(node) updateCovBtn(node);
+  }
+}
+
+async function _computeNodeCoverageImpl(node){
+  const g = globalRf();
+  const rf = effectiveRf(node);
+  const friisRange = friisRangeMeters(rf.tx, rf.gain, rf.gain, rf.rx, g.freq, g.margin);
+  if(!friisRange){ toast(`${node.name}: link budget too low — no coverage`, 3000); return; }
+  // Cap to user-configured search radius so we don't fetch tiles forever
+  const maxRange = Math.min(friisRange, g.maxKm * 1000);
+
+  // Make sure source elevation is available
+  if(node.elev == null){
+    toast(`${node.name}: fetching elevation…`);
+    try{ node.elev = await tileElevAt(node.lat, node.lng); updateElevDisplay(node); }
+    catch(e){ throw new Error(`elevation tile fetch failed (${e.message||e})`); }
+  }
+
+  toast(`${node.name}: computing rays (max ${(maxRange/1000).toFixed(0)} km, Friis would allow ${(friisRange/1000).toFixed(0)} km)…`);
+  const srcH = node.elev + node.antH;
+  const rays = g.rays, samples = g.samples;
+  const reach = [];   // [{az, dist, latlng}]
+
+  for(let r = 0; r < rays; r++){
+    const az = r * 360 / rays;
+    if(r % 6 === 0) toast(`${node.name}: ray ${r+1}/${rays}…`);
+    // Sample terrain along this ray (tiles are lazy-loaded; first hit may pull a few tiles)
+    const dists = [], elevs = [];
+    const points = [];
+    for(let s = 0; s <= samples; s++){
+      const d = maxRange * s / samples;
+      const [la, ln] = destPoint(node.lat, node.lng, az, d);
+      dists.push(d);
+      points.push([la, ln]);
+    }
+    // Fetch elevations for this ray in parallel — duplicate tile requests are de-duped by cache
+    let elArr;
+    try {
+      elArr = await Promise.all(points.map(([la, ln]) => tileElevAt(la, ln)));
+    } catch(e){
+      throw new Error(`terrain tile fetch failed at ray ${r}: ${e.message||e}`);
+    }
+    elArr.forEach(v => elevs.push(v));
+    // Find farthest sample that is still reachable from src
+    let reachIdx = 0;
+    for(let s = 1; s <= samples; s++){
+      const dS = dists[s];
+      const rxAlt = elevs[s] + g.rxAntH;
+      let clearAll = true;
+      for(let j = 1; j < s; j++){
+        const dJ = dists[j];
+        const t = dJ / dS;
+        const los = srcH + (rxAlt - srcH) * t;
+        const eff = elevs[j] + bulge(dJ, dS - dJ, g.K);
+        const fz = g.fresnelPct > 0 ? fresnel1(dJ, dS - dJ, g.freq) * g.fresnelPct : 0;
+        if(los - eff - fz <= 0){ clearAll = false; break; }
+      }
+      if(!clearAll) break;
+      reachIdx = s;
+    }
+    const reachDist = dists[reachIdx];
+    const [la, ln] = destPoint(node.lat, node.lng, az, Math.max(reachDist, 1));
+    reach.push({az, dist:reachDist, latlng:[la, ln]});
+  }
+
+  node.coverageRays = reach;
+  node.coverageMaxRange = maxRange;
+  node.coverageComputed = true;
+  node.coverageDirty = false;
+  hideToast();
+  renderCoveragePolygon(node);
+  updateCovBtn(node);
+}
+
+function renderCoveragePolygon(node){
+  if(node.coverageLayer){ S.map.removeLayer(node.coverageLayer); node.coverageLayer = null; }
+  if(!node.coverageRays || !node.coverageRays.length) return;
+  const idx = S.nodes.indexOf(node);
+  const col = nodeColor(idx);
+  const latlngs = node.coverageRays.map(r => r.latlng);
+  node.coverageLayer = L.polygon(latlngs, {
+    color: col, weight: 1.5, opacity: 0.85,
+    fillColor: col, fillOpacity: 0.18,
+    interactive: false
+  });
+  if(node.coverageOn) node.coverageLayer.addTo(S.map);
+  if(node.coverageLayer.bringToBack) node.coverageLayer.bringToBack();
+}
+
+async function computeAllCoverage(){
+  if(S._coverageComputing){ toast('Coverage compute already running.', 2000); return; }
+  const targets = S.nodes.filter(n => !n.coverageComputed || n.coverageDirty);
+  if(!targets.length){ toast('All coverage already computed.', 2000); return; }
+  for(let i = 0; i < targets.length; i++){
+    toast(`Coverage ${i+1}/${targets.length}: ${targets[i].name}`);
+    await computeNodeCoverage(targets[i]);
+    // brief yield so UI can repaint
+    await sleep(20);
+  }
+  toast('Coverage compute complete.', 2500);
+}
 
 // ═══════════════════════════════════════════════════════════
 //  ANALYSIS  —  runs on every edge
@@ -1564,22 +1990,51 @@ function clearCanvas(){
 //  SHARE via URL hash
 // ═══════════════════════════════════════════════════════════
 function openShare(){
-  // Compact v2 schema: short keys + array-indexed refs, then LZ-string compress
+  // Compact v3 schema: short keys + array-indexed refs, then LZ-string compress.
+  // Backwards-compatible with v2 — only adds RF + coverage fields.
   const idx=new Map(S.nodes.map((n,i)=>[n.id,i]));
   const data={
-    v:2,
+    v:3,
     f:+document.getElementById('inpFreq').value,
     k:document.getElementById('inpK').value,
-    n:S.nodes.map(n=>[+n.lat.toFixed(6),+n.lng.toFixed(6),n.antH,n.name]),
+    tx:+document.getElementById('inpTx').value,
+    gn:+document.getElementById('inpGain').value,
+    rx:+document.getElementById('inpRx').value,
+    mg:+document.getElementById('inpMargin').value,
+    ra:+document.getElementById('inpRxAntH').value,
+    cr:+document.getElementById('inpCovRays').value,
+    cs:+document.getElementById('inpCovSamples').value,
+    cf:+document.getElementById('inpCovFresnel').value,
+    // node: [lat, lng, antH, name, rfOverride?, tx?, gain?, rx?, coverageOn?]
+    n:S.nodes.map(n=>{
+      const base=[+n.lat.toFixed(6),+n.lng.toFixed(6),n.antH,n.name];
+      if(n.rfOverride||n.coverageOn){
+        base.push(n.rfOverride?1:0, n.txDbm??null, n.gainDbi??null, n.rxDbm??null, n.coverageOn?1:0);
+      }
+      return base;
+    }),
     e:S.edges.map(e=>[idx.get(e.aId),idx.get(e.bId)]),
     p:S.paths.map(p=>[p.name,...p.nodeIds.map(id=>idx.get(id))])
   };
-  const hash='v2:'+LZString.compressToEncodedURIComponent(JSON.stringify(data));
+  const hash='v3:'+LZString.compressToEncodedURIComponent(JSON.stringify(data));
   const url=window.location.href.split('#')[0]+'#'+hash;
   document.getElementById('shareUrl').textContent=url;
   document.getElementById('shareModal').classList.add('open');
 }
 function closeShare(){document.getElementById('shareModal').classList.remove('open');}
+function openSettings(){ refreshSettingsSummary(); document.getElementById('settingsModal').classList.add('open'); }
+function closeSettings(){ document.getElementById('settingsModal').classList.remove('open'); refreshSettingsSummary(); }
+function refreshSettingsSummary(){
+  const f = document.getElementById('inpFreq')?.value || '915';
+  const tx = document.getElementById('inpTx')?.value || '?';
+  const gn = document.getElementById('inpGain')?.value || '?';
+  const cov = S.nodes.filter(n => n.coverageOn).length;
+  const total = S.nodes.length;
+  const band = document.getElementById('ssBand'); if(band) band.textContent = `${f} MHz`;
+  const bud = document.getElementById('ssBudget'); if(bud) bud.textContent = `${tx} dBm / ${(+gn>=0?'+':'')}${gn} dBi`;
+  const cc = document.getElementById('ssCovCount'); if(cc) cc.textContent = `${cov}/${total}`;
+  const cv = document.getElementById('covCount'); if(cv) cv.textContent = cov;
+}
 function copyShareUrl(){
   const url=document.getElementById('shareUrl').textContent;
   navigator.clipboard.writeText(url).then(()=>{toast('Link copied!',2000);closeShare();}).catch(()=>{toast('Copy failed — select & copy manually.',3000);});
@@ -1602,7 +2057,10 @@ function maybeShowHelp(){
 // ═══════════════════════════════════════════════════════════
 function applyPreset(){
   const v=document.getElementById('inpPreset').value;
-  if(v) document.getElementById('inpFreq').value=v;
+  if(v){
+    document.getElementById('inpFreq').value=v;
+    applyPresetRf(v);
+  }
 }
 function syncPresetFromFreq(){
   const f=document.getElementById('inpFreq').value;
@@ -1615,9 +2073,10 @@ function loadFromHash(){
   if(!hash) return;
   try{
     let data;
-    if(hash.startsWith('v2:')){
+    const isV3 = hash.startsWith('v3:');
+    const isV2 = hash.startsWith('v2:');
+    if(isV3 || isV2){
       const raw=JSON.parse(LZString.decompressFromEncodedURIComponent(hash.slice(3)));
-      // Re-assign IDs and expand compact arrays → internal shape
       let id=1;
       const nIds=raw.n.map(()=>id++);
       const eIds=raw.e.map(()=>id++);
@@ -1625,7 +2084,13 @@ function loadFromHash(){
       data={
         freq:raw.f,
         k:raw.k,
-        nodes:raw.n.map((nd,i)=>({id:nIds[i],lat:nd[0],lng:nd[1],antH:nd[2],name:nd[3]})),
+        tx:raw.tx, gain:raw.gn, rx:raw.rx, margin:raw.mg,
+        rxAntH:raw.ra, covRays:raw.cr, covSamples:raw.cs, covFresnel:raw.cf,
+        nodes:raw.n.map((nd,i)=>({
+          id:nIds[i], lat:nd[0], lng:nd[1], antH:nd[2], name:nd[3],
+          rfOverride: !!nd[4], txDbm: nd[5]??null, gainDbi: nd[6]??null, rxDbm: nd[7]??null,
+          coverageOn: !!nd[8]
+        })),
         edges:raw.e.map((ed,i)=>({id:eIds[i],aId:nIds[ed[0]],bId:nIds[ed[1]]})),
         paths:raw.p.map((p,i)=>({id:pIds[i],name:p[0],nodeIds:p.slice(1).map(j=>nIds[j])})),
         nextId:id
@@ -1636,10 +2101,19 @@ function loadFromHash(){
     }
     document.getElementById('inpFreq').value=data.freq||915;
     document.getElementById('inpK').value=data.k||'1.333';
+    if(data.tx!=null) document.getElementById('inpTx').value=data.tx;
+    if(data.gain!=null) document.getElementById('inpGain').value=data.gain;
+    if(data.rx!=null) document.getElementById('inpRx').value=data.rx;
+    if(data.margin!=null) document.getElementById('inpMargin').value=data.margin;
+    if(data.rxAntH!=null) document.getElementById('inpRxAntH').value=data.rxAntH;
+    if(data.covRays!=null) document.getElementById('inpCovRays').value=data.covRays;
+    if(data.covSamples!=null) document.getElementById('inpCovSamples').value=data.covSamples;
+    if(data.covFresnel!=null) document.getElementById('inpCovFresnel').value=data.covFresnel;
     S.nextId=data.nextId||1;
     // Restore nodes
     data.nodes.forEach(nd=>{
-      const node={...nd,elev:null,marker:null};
+      const node={...nd, elev:null, marker:null,
+        coverageLayer:null, coverageDirty:true, coverageComputed:false};
       S.nodes.push(node);
       node.marker=makeMarker(node);
       fetchElev(node);
@@ -1720,7 +2194,7 @@ window.addEventListener('load',()=>{
   initCollapsibles();
   renderNodeList();
   setTimeout(()=>S.map.invalidateSize(),200);
-  setTimeout(()=>{S.map.invalidateSize();loadFromHash();syncPresetFromFreq();maybeShowHelp();},600);
+  setTimeout(()=>{S.map.invalidateSize();loadFromHash();syncPresetFromFreq();refreshSettingsSummary();maybeShowHelp();},600);
 });
 window.addEventListener('resize',()=>{
   if(S.map) S.map.invalidateSize();
