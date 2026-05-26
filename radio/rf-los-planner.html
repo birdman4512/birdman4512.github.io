@@ -276,9 +276,9 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       </div>
       <div class="field-row" style="margin-bottom:6px">
         <label>Freq (MHz)</label>
-        <input type="number" id="inpFreq" value="915" min="1" style="width:78px" oninput="syncPresetFromFreq()">
+        <input type="number" id="inpFreq" value="915" min="1" style="width:78px" oninput="syncPresetFromFreq()" onchange="onCoverageParamChanged()">
         <label>K-Factor</label>
-        <select id="inpK" style="width:64px">
+        <select id="inpK" style="width:64px" onchange="onCoverageParamChanged()">
           <option value="1.333">4/3</option>
           <option value="1.0">1.0</option>
           <option value="0.667">2/3</option>
@@ -302,13 +302,13 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <div class="settings-label">Coverage <span id="covCount" style="color:var(--accent)">0</span> active</div>
       <div class="field-row" style="margin-bottom:6px">
         <label>RX Ant (m)</label>
-        <input type="number" id="inpRxAntH" value="2" step="0.5" min="0" style="width:58px">
+        <input type="number" id="inpRxAntH" value="2" step="0.5" min="0" style="width:58px" onchange="onCoverageParamChanged()">
         <label>Max (km)</label>
-        <input type="number" id="inpCovMaxKm" value="30" step="1" min="1" max="100" style="width:58px" title="Cap the search radius. Larger = slower compute + more tile downloads.">
+        <input type="number" id="inpCovMaxKm" value="30" step="1" min="1" max="100" style="width:58px" title="Cap the search radius. Larger = slower compute + more tile downloads." onchange="onCoverageParamChanged()">
       </div>
       <div class="field-row" style="margin-bottom:6px">
         <label>Rays</label>
-        <select id="inpCovRays" style="width:90px" title="More rays = smoother polygon. Diminishing returns past 180 (DEM is ~30 m).">
+        <select id="inpCovRays" style="width:90px" title="More rays = smoother polygon. Diminishing returns past 180 (DEM is ~30 m)." onchange="onCoverageParamChanged()">
           <option value="24">24 (15°)</option>
           <option value="36">36 (10°)</option>
           <option value="72" selected>72 (5°)</option>
@@ -316,7 +316,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
           <option value="360">360 (1°)</option>
         </select>
         <label>Samples / ray</label>
-        <select id="inpCovSamples" style="width:60px" title="Samples per ray — fewer = faster but coarser">
+        <select id="inpCovSamples" style="width:60px" title="Samples per ray — fewer = faster but coarser" onchange="onCoverageParamChanged()">
           <option value="30">30</option>
           <option value="50" selected>50</option>
           <option value="80">80</option>
@@ -324,9 +324,9 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       </div>
       <div class="field-row">
         <label>Fresnel clearance</label>
-        <select id="inpCovFresnel" style="width:120px">
+        <select id="inpCovFresnel" style="width:120px" onchange="onCoverageParamChanged()" title="0 = signal can physically reach (matches Meshtastic-style forgiving links). 60% = professional engineering quality.">
           <option value="0">0 (LOS only)</option>
-          <option value="0.6" selected>60%</option>
+          <option value="0.6">60%</option>
           <option value="1">100%</option>
         </select>
       </div>
@@ -355,7 +355,7 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <button class="btn" onclick="openSettings()">⚙ SETTINGS</button>
       <button class="btn share" onclick="openShare()">⇪ SHARE</button>
       <button class="btn danger" onclick="clearAll()">CLEAR ALL</button>
-      <span class="hdr-tag" title="Build 20260526-2">BUILD 20260526-2</span>
+      <span class="hdr-tag" title="Build 20260526-3">BUILD 20260526-3</span>
       <button class="btn primary" onclick="runAnalysis()">▶ ANALYSE</button>
     </div>
   </header>
@@ -1189,14 +1189,18 @@ function friisRangeMeters(txDbm, gainTx, gainRx, rxSensDbm, fMHz, marginDb){
 // ═══════════════════════════════════════════════════════════
 //  COVERAGE  —  per-node radial sweep, polygon rendering
 // ═══════════════════════════════════════════════════════════
+// Per-preset full settings bundle: link budget + coverage modelling defaults.
+// Meshtastic & ham VHF/UHF use Fresnel=0 + 6 dB margin to reflect the
+// forgiving "packet gets through with degraded clearance" reality.
+// Wi-Fi presets use Fresnel=60% + 10 dB margin (sustained-link engineering).
 const PRESET_RF = {
-  '915':  {tx:22, gain:2, rx:-130},
-  '868':  {tx:22, gain:2, rx:-130},
-  '433':  {tx:22, gain:2, rx:-130},
-  '146':  {tx:37, gain:0, rx:-120},
-  '438':  {tx:37, gain:0, rx:-120},
-  '2400': {tx:20, gain:2, rx:-85},
-  '5800': {tx:20, gain:3, rx:-80}
+  '915':  {tx:22, gain:2, rx:-130, margin:6,  fresnel:'0',   maxKm:50},
+  '868':  {tx:22, gain:2, rx:-130, margin:6,  fresnel:'0',   maxKm:50},
+  '433':  {tx:22, gain:2, rx:-130, margin:6,  fresnel:'0',   maxKm:50},
+  '146':  {tx:37, gain:0, rx:-120, margin:6,  fresnel:'0',   maxKm:50},
+  '438':  {tx:37, gain:0, rx:-120, margin:6,  fresnel:'0',   maxKm:30},
+  '2400': {tx:20, gain:2, rx:-85,  margin:10, fresnel:'0.6', maxKm:5},
+  '5800': {tx:20, gain:3, rx:-80,  margin:10, fresnel:'0.6', maxKm:5}
 };
 
 function globalRf(){
@@ -1234,13 +1238,27 @@ function onGlobalRfChanged(){
   refreshSettingsSummary();
 }
 
+// Coverage-shape params (freq, K, Fresnel %, rays, samples, max range, RX ant)
+// affect every node regardless of override status.
+function onCoverageParamChanged(){
+  S.nodes.forEach(n => invalidateNodeCoverage(n, true));
+  renderNodeList();
+  refreshSettingsSummary();
+}
+
 function applyPresetRf(presetVal){
   const rf = PRESET_RF[presetVal];
   if(!rf) return;
   document.getElementById('inpTx').value = rf.tx;
   document.getElementById('inpGain').value = rf.gain;
   document.getElementById('inpRx').value = rf.rx;
-  onGlobalRfChanged();
+  if(rf.margin   != null) document.getElementById('inpMargin').value     = rf.margin;
+  if(rf.fresnel  != null) document.getElementById('inpCovFresnel').value = rf.fresnel;
+  if(rf.maxKm    != null) document.getElementById('inpCovMaxKm').value   = rf.maxKm;
+  // Preset change touches freq + RF + coverage modelling — invalidate every node.
+  S.nodes.forEach(n => invalidateNodeCoverage(n, true));
+  renderNodeList();
+  refreshSettingsSummary();
 }
 
 function setNodeRf(id, field, val){
@@ -1414,12 +1432,10 @@ function renderCoveragePolygon(node){
 
 async function computeAllCoverage(){
   if(S._coverageComputing){ toast('Coverage compute already running.', 2000); return; }
-  const targets = S.nodes.filter(n => !n.coverageComputed || n.coverageDirty);
-  if(!targets.length){ toast('All coverage already computed.', 2000); return; }
-  for(let i = 0; i < targets.length; i++){
-    toast(`Coverage ${i+1}/${targets.length}: ${targets[i].name}`);
-    await computeNodeCoverage(targets[i]);
-    // brief yield so UI can repaint
+  if(!S.nodes.length){ toast('No nodes to compute.', 2000); return; }
+  for(let i = 0; i < S.nodes.length; i++){
+    toast(`Coverage ${i+1}/${S.nodes.length}: ${S.nodes[i].name}`);
+    await computeNodeCoverage(S.nodes[i]);
     await sleep(20);
   }
   toast('Coverage compute complete.', 2500);
