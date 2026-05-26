@@ -308,10 +308,12 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       </div>
       <div class="field-row" style="margin-bottom:6px">
         <label>Rays</label>
-        <select id="inpCovRays" style="width:64px">
-          <option value="24">24</option>
-          <option value="36" selected>36</option>
-          <option value="72">72</option>
+        <select id="inpCovRays" style="width:90px" title="More rays = smoother polygon. Diminishing returns past 180 (DEM is ~30 m).">
+          <option value="24">24 (15°)</option>
+          <option value="36">36 (10°)</option>
+          <option value="72" selected>72 (5°)</option>
+          <option value="144">144 (2.5°)</option>
+          <option value="360">360 (1°)</option>
         </select>
         <label>Samples / ray</label>
         <select id="inpCovSamples" style="width:60px" title="Samples per ray — fewer = faster but coarser">
