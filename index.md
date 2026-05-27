@@ -33,8 +33,8 @@ Open-source tools and write-ups covering incident response, threat intelligence,
 
 ## Web Apps
 
-- **[Train Int ↗](https://tracker.quirkyit.com.au/train-int/)**
-- **[Fuel Int ↗](https://tracker.quirkyit.com.au/fuel-int/)**
+- **[Train Int ↗](https://tracker.quirkyit.com.au/train-int/)** — Live QR train locations and service alerts on a single map
+- **[Fuel Int ↗](https://tracker.quirkyit.com.au/fuel-int/)** — Live QLD fuel prices at nearby stations, sortable by fuel type and distance
 
 ## AI & LLM
 
