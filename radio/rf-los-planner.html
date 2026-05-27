@@ -229,8 +229,8 @@ input[type=number]:focus,input[type=text]:focus,select:focus{outline:none;border
       <li><strong>Coverage layer</strong> — set TX power / antenna gain / RX sensitivity (defaults seeded from the preset), tick the <em>COVERAGE</em> box on a node, then click <em>COMPUTE</em>. A terrain-aware coverage polygon is drawn. Use <em>ALL ON / ALL OFF</em> to toggle every node at once.</li>
     </ol>
     <p style="font-size:12px;color:var(--muted);line-height:1.5">
-      <strong style="color:var(--green)">✓ CLEAR</strong> — LOS and Fresnel zone clear.&nbsp;
-      <strong style="color:var(--orange)">⚠ MARGINAL</strong> — LOS clear but Fresnel obstructed.&nbsp;
+      <strong style="color:var(--green)">✓ CLEAR</strong> — LOS clear and Fresnel meets preset threshold (0 % for Meshtastic/ham, 60 % for Wi-Fi).&nbsp;
+      <strong style="color:var(--orange)">⚠ MARGINAL</strong> — LOS clear but Fresnel below threshold (Wi-Fi presets only; Meshtastic treats any positive LOS clearance as clear).&nbsp;
       <strong style="color:var(--red)">✕ BLOCKED</strong> — terrain in the way.
     </p>
     <p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5">
@@ -1451,6 +1451,9 @@ async function runAnalysis(){
   S._analysing=true;
   const freq=parseFloat(document.getElementById('inpFreq').value)||900;
   const K=parseFloat(document.getElementById('inpK').value)||1.333;
+  // Fresnel clearance threshold (preset-driven): 0 for forgiving links (Meshtastic/ham VHF/UHF),
+  // 0.6 for engineered links (Wi-Fi). Used to scale the marginal-vs-clear boundary.
+  const fresnelPct=Math.max(0,Math.min(1,parseFloat(document.getElementById('inpCovFresnel').value)||0));
   const N=80;
   const MAX_TERRAIN_ERRORS=2;
   let terrainErrors=0;
@@ -1490,7 +1493,7 @@ async function runAnalysis(){
       // Antenna tip = ground + antenna height
       const aH=aGnd+a.antH, bH=bGnd+b.antH;
 
-      let minLosClear=Infinity,minFzClear=Infinity;
+      let minLosClear=Infinity,minFzClear=Infinity,minScaledFzClear=Infinity;
       for(let s=1;s<N;s++){
         const d1=dists[s],d2=dist-dists[s],t=s/N;
         const eff=elevs[s]+bulge(d1,d2,K);
@@ -1499,9 +1502,10 @@ async function runAnalysis(){
         if(clear<minLosClear) minLosClear=clear;
         const fz=fresnel1(d1,d2,freq);
         if(clear-fz<minFzClear) minFzClear=clear-fz;
+        if(clear-fz*fresnelPct<minScaledFzClear) minScaledFzClear=clear-fz*fresnelPct;
       }
-      const status=minLosClear<=0?'blocked':minFzClear<=0?'marginal':'clear';
-      e.result={dist,minLosClear,minFzClear,status};
+      const status=minLosClear<=0?'blocked':minScaledFzClear<=0?'marginal':'clear';
+      e.result={dist,minLosClear,minFzClear,minScaledFzClear,fresnelPct,status};
       e.profile={elevs,dists,dist,aH,bH,a,b,freq,K,N};
 
       // Colour the line on map
