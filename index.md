@@ -31,6 +31,11 @@ Open-source tools and write-ups covering incident response, threat intelligence,
 
 → [All technology write-ups & projects](technology.html)
 
+## Web Apps
+
+- **[Train Int ↗](https://tracker.quirkyit.com.au/train-int/)**
+- **[Fuel Int ↗](https://tracker.quirkyit.com.au/fuel-int/)**
+
 ## AI & LLM
 
 AI runs through most of the projects above — local Ollama models, RAG pipelines, and LLM tooling are core, not gimmicks. The one architecture piece worth its own write-up is **[OpenClaw setup](technology/openclaw-setup.html)** — a multi-workspace AI agent architecture covering personal, work, and forensic contexts.
