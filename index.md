@@ -15,7 +15,7 @@ Amateur radio operator, IT security professional, and tinkerer based in Bellmere
 Licensed as VK4DSB in QG62. I run a Xiegu X6100 and am active on FT8, APRS, and SSTV. Current projects include a solar-powered Meshtastic relay node.
 
 - **[Ham Dashboard](radio/hamdashboard/)** — Live propagation, APRS, FT8, BOM radar, and DX tracking in one view
-- **[RF Line of Sight Planner](radio/rf-los-planner.html)** — Interactive map for planning RF line-of-sight paths between locations
+- **[RF Line of Sight Planner](https://birdman4512.github.io/rf-los-planner/)** — Interactive map for planning RF line-of-sight paths between locations
 - **[Radio Setup](radio/setup.html)** — Software and equipment for the X6100
 
 → [All radio projects & guides](radio.html)
