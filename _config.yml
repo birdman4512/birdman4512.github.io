@@ -8,6 +8,9 @@ plugins:
 
 future: true
 
+# Google Analytics 4 Measurement ID (looks like G-XXXXXXXXXX)
+google_analytics: G-6WSWBW6JE1
+
 excerpt_separator: <!--more-->
 
 defaults:
