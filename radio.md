@@ -9,7 +9,7 @@ This index links to topic pages covering practical, technical, and regulatory as
 ## Helpful Resources
 
 - [Amateur Radio Training - Foundation Licence](radio/foundation-training.html) — A page with resources to help get your foundation licence.
-- [My Radio Setup](radio/setup.html)
+- [My Radio Rig](/2026/06/16/my-radio-rig.html) — My current portable radio setup and gear.
 - [Helpful websites](radio/websites.html) - Helpful Websites for radio
 
 ## Projects

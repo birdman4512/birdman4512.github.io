@@ -16,7 +16,7 @@ Licensed as VK4DSB in QG62. I run a Xiegu X6100 and am active on FT8, APRS, and 
 
 - **[Ham Dashboard](radio/hamdashboard/)** — Live propagation, APRS, FT8, BOM radar, and DX tracking in one view
 - **[RF Line of Sight Planner](https://dea.nbird.com.au/rf-los-planner/)** — Interactive map for planning RF line-of-sight paths between locations
-- **[Radio Setup](radio/setup.html)** — Software and equipment for the X6100
+- **[My Radio Rig](/2026/06/16/my-radio-rig.html)** — My current portable radio setup and gear
 
 → [All radio projects & guides](radio.html)
 
