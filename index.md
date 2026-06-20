@@ -4,45 +4,29 @@ title: Home
 
 # Dean Bird — VK4DSB
 
-Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD. Most of my work is in digital forensics, incident response, and threat intelligence.
+I'm an amateur radio operator and IT security professional based in Bellmere, QLD. I spend my time tinkering where my three main interests overlap — radio, security, and AI.
 
-**[Blog](blog.html) · [Radio](radio.html) · [Technology](technology.html)** · [QRZ ↗](https://www.qrz.com/db/VK4DSB) · [GitHub ↗](https://github.com/birdman4512)
+**[Blog](blog.html) · [Projects](projects.html) · [Radio](radio.html) · [Technology](technology.html)** · [QRZ ↗](https://www.qrz.com/db/VK4DSB) · [GitHub ↗](https://github.com/birdman4512)
 
 ---
 
-## Amateur Radio
+## What I'm into
 
-Licensed as VK4DSB in QG62. I run a Xiegu X6100 and am active on FT8, APRS, and SSTV. Current projects include a solar-powered Meshtastic relay node.
+**📻 Radio** — Licensed as VK4DSB in QG62. Active on FT8, APRS, and SSTV with a Xiegu X6100, and currently deploying solar-powered Meshtastic relay nodes around northern Brisbane.
 
-- **[Ham Dashboard](radio/hamdashboard/)** — Live propagation, APRS, FT8, BOM radar, and DX tracking in one view
-- **[RF Line of Sight Planner](https://dea.nbird.com.au/rf-los-planner/)** — Interactive map for planning RF line-of-sight paths between locations
-- **[My Radio Rig](/2026/06/16/my-radio-rig.html)** — My current portable radio setup and gear
+**🛡️ Technology & Security** — My day job is digital forensics, incident response, and threat intelligence. Off the clock I build open-source DFIR and threat-intel tooling.
 
-→ [All radio projects & guides](radio.html)
+**🤖 AI** — Local and cloud LLMs run through nearly everything I make — RAG pipelines, natural-language tooling, and offline inference over radio. The aim is useful, not flashy.
 
-## Technology & Security
-
-Open-source tools and write-ups covering incident response, threat intelligence, and network security. Most use local or cloud LLMs as a core component.
-
-- **[talkIR](https://github.com/birdman4512/talkIR)** — Natural-language queries over IR log data; supports Ollama, Claude, and OpenAI
-- **[SignalSage](https://github.com/birdman4512/SignalSage)** — Threat-intel enrichment bot for Slack and Discord with LLM-generated digests
-- **[forensic-claw](https://github.com/birdman4512/forensic-claw)** — Dockerised DFIR workstation with an AI agent driving Sleuth Kit, Volatility, Plaso, and more
-- **[mesh-medic](https://github.com/birdman4512/mesh-medic)** — Fully offline RAG + LLM over LoRa radio for off-grid use
-
-→ [All technology write-ups & projects](technology.html)
+→ [See all projects](projects.html)
 
 ## Web Apps
 
-- **[Train Int ↗](https://tracker.quirkyit.com.au/train-int/)** — Live QR train locations and service alerts on a single map
-- **[Fuel Int ↗](https://tracker.quirkyit.com.au/fuel-int/)** — Live QLD fuel prices at nearby stations, sortable by fuel type and distance
-
-## AI & LLM
-
-AI runs through most of the projects above — local Ollama models, RAG pipelines, and LLM tooling are core, not gimmicks. The one architecture piece worth its own write-up is **[OpenClaw setup](technology/openclaw-setup.html)** — a multi-workspace AI agent architecture covering personal, work, and forensic contexts.
+{% include app-panel.html %}
 
 ## Latest from the Blog
 
-{% for post in site.posts limit:3 %}
+{% for post in site.posts limit:2 %}
 - **{{ post.date | date: "%Y-%m-%d" }}** — [{{ post.title }}]({{ post.url | relative_url }})
 {% endfor %}
 

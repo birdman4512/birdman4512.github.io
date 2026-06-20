@@ -1,0 +1,58 @@
+<style>
+.app-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1em;
+  margin: 1.2em 0;
+}
+.app-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.9em 1em;
+  border: 1px solid #2d2d2d;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  text-decoration: none !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.app-card:hover {
+  border-color: #4f9fd6;
+  background: rgba(79, 159, 214, 0.08);
+}
+.app-card img {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+.app-card .app-name {
+  font-weight: bold;
+  color: #4f9fd6;
+}
+.app-card .app-desc {
+  display: block;
+  font-size: 0.82em;
+  opacity: 0.8;
+  margin-top: 0.15em;
+}
+</style>
+
+<div class="app-panel">
+  <a class="app-card" href="https://tracker.quirkyit.com.au/train-int/">
+    <img src="https://tracker.quirkyit.com.au/train-int/favicon.svg" alt="Train Int icon">
+    <span><span class="app-name">Train Int ↗</span><span class="app-desc">Live QR train locations and service alerts on a single map.</span></span>
+  </a>
+  <a class="app-card" href="https://tracker.quirkyit.com.au/fuel-int/">
+    <img src="https://tracker.quirkyit.com.au/fuel-int/favicon.svg" alt="Fuel Int icon">
+    <span><span class="app-name">Fuel Int ↗</span><span class="app-desc">Live QLD fuel prices at nearby stations, sortable by type and distance.</span></span>
+  </a>
+  <a class="app-card" href="https://dea.nbird.com.au/rf-los-planner/">
+    <img src="https://dea.nbird.com.au/rf-los-planner/favicon.svg" alt="RF LOS Planner icon">
+    <span><span class="app-name">RF Line of Sight Planner ↗</span><span class="app-desc">Interactive map for planning RF line-of-sight paths between locations.</span></span>
+  </a>
+  <a class="app-card" href="https://dea.nbird.com.au/hf-range-planner/">
+    <img src="https://dea.nbird.com.au/hf-range-planner/icon.svg" alt="HF Range Planner icon">
+    <span><span class="app-name">HF Range Planner ↗</span><span class="app-desc">Estimate HF coverage and band reach for a given location and conditions.</span></span>
+  </a>
+</div>
