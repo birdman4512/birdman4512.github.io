@@ -160,4 +160,4 @@ A few choices that are less obvious from the structure alone:
 
 ---
 
-Return to [Technology](../technology.html)
+Return to [Projects](../projects.html)

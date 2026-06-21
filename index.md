@@ -6,7 +6,7 @@ title: Home
 
 I'm an amateur radio operator and IT security professional based in Bellmere, QLD. I spend my time tinkering where my three main interests overlap — radio, security, and AI.
 
-**[Blog](blog.html) · [Projects](projects.html) · [Radio](radio.html) · [Technology](technology.html)** · [QRZ ↗](https://www.qrz.com/db/VK4DSB) · [GitHub ↗](https://github.com/birdman4512)
+**[Blog](blog.html) · [Projects](projects.html)** · [QRZ ↗](https://www.qrz.com/db/VK4DSB) · [GitHub ↗](https://github.com/birdman4512)
 
 ---
 
