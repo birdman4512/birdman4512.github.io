@@ -88,10 +88,11 @@ I run a lot of local LLMs via [Ollama](https://ollama.com/) and wire them into p
 - Podcast/audio transcription via Whisper feeding into LLM summaries (SignalSage)
 - Fully offline inference over LoRa radio with message chunking (mesh-medic)
 
-### Write-ups & Guides
+**Guide:** [OpenClaw Setup](technology/openclaw-setup.html) — architecture and routing for a multi-workspace AI agent system covering personal, work, forensic, and family contexts.
 
-- [Building a TOR Transparent Gateway](technology/tor-transparent-gw.html) — Routing multiple network segments through TOR with a dual-homed Alpine gateway
-- [OpenClaw Setup](technology/openclaw-setup.html) — Architecture and routing for a multi-workspace AI agent system covering personal, work, forensic, and family contexts
+### IT & Networking
+
+- [Building a TOR Transparent Gateway](technology/tor-transparent-gw.html) — Routing multiple network segments through TOR with a dual-homed Alpine gateway.
 
 ---
 
