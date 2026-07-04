@@ -4,55 +4,55 @@ date: 2026-07-04
 excerpt: "An unidentified uid:-253 was uploading megabytes of data from my phone every night. Here's how I traced Android's undocumented negative UID to Google's backup service."
 ---
 
-While monitoring the network traffic on my phone I found an unknown process called `uid:-253` which was regularly uploading data each night. What caught my attention was the package name, which wasnt like the others but instead a UID. After a few quick Google searches about what it could be, I came up with nothing, So instead, I set out with Claude to work out what was generating the traffic. 
-
-[<img src="/assets/2026-07/kibana-overview-7d.png" width="500" alt="Kibana dashboard showing a 7-day overview of per-app network traffic on my phone">](/assets/2026-07/kibana-overview-7d.png)
+There is LOTS of advice out there about treating your phone with a healthy dose of respect. And given that it hold so much sensitive information (and ends up being in some many situations with me) I thought it important to know what it is doing and if there is anything that I should be concerned about. 
 
 <!--more-->
 
 ## Monitoring my phone
 
-I always hear a lot of stories about how we should be weary of our phones. With that in mind, I have over the past few weeks and months been been building an app that runs on my phone and watches for suspicious activity. One of the things it does is record how much data every app moves in each 30 minute window and ships it off to a self-hosted Elasticsearch, where I have a Kibana dashboard to graph it all.
+Over the past few weeks, I have been developing an app (By me, I mean me and Claude / Codex) that looks for unusual indicators on my phone and alerts me if something is amiss. One of the things it does is record how much data every app moves in each 30 minute window and ships it off to a self-hosted Elasticsearch, where I have a Kibana dashboard to graph it all.
 
-Looking over the dashboard, most of the entries were what you would expect — Android Auto (a huge amount of traffic, which I had to filter out just to see anything else), WhatsApp, Maps and so on. But one entry stood out: `uid:-253`.
+[<img src="/assets/2026-07/kibana-overview-7d.png" width="500" alt="Kibana dashboard showing a 7-day overview of per-app network traffic on my phone">](/assets/2026-07/kibana-overview-7d.png)
 
-The app labels traffic with the package name of the app that moved it. When it can't find an app for the traffic, it falls back to just showing the raw UID. So this was traffic that Android was accounting for, but that no installed app owned.
+While monitoring the network traffic on my phone I found an unknown process called `uid:-253` which was regularly uploading data each night. What caught my attention was the package name, instead of it being the name of an app (Android Auto, WhatsApp, Maps, etc.), It was a UID. And so I did what any good analyst would and performed a few quick Google searches about what it could be, I came up with nothing. I built this to investigate unusual activity, and here was something. The game's afoot.  
+
+<img src="https://media1.tenor.com/m/PnU5WE-n2LIAAAAd/investigate-spy.gif" width="300" alt="Investigate GIF">
+
+How did we get here? The app labels traffic with the package name of the app that moved it and when it can't find an app for the traffic, it falls back to just showing the raw UID. So this was traffic that Android was accounting for, but that no installed app owned.
 
 Filtering the dashboard down to just that entry made it more interesting. It only moved data at night, and on the night of the 2nd of July it uploaded over 20MB in a single window.
 
 [<img src="/assets/2026-07/kibana-uid253-7d.png" width="500" alt="Kibana graph filtered to uid:-253 showing traffic spikes only at night">](/assets/2026-07/kibana-uid253-7d.png)
 
-An unknown process uploading data while I sleep is exactly the kind of thing I built the app for, so it was time to investigate. 
-
-<img src="https://media1.tenor.com/m/PnU5WE-n2LIAAAAd/investigate-spy.gif" width="300" alt="Investigate GIF">
-
 ## First attempt - chasing UID 253
 
-I must disclose here, that I do not know much about programming for Android, so I have co-opted Claude to help me investigate. 
+I must disclose here, that I do not know much about programming for Android, so I have co-opted Claude to help me with the investigation.  
 
-On Android, every app gets its own Linux UID, and the system services have well-known low-numbered UIDs (1000 is system, 1001 is the radio, etc.). So the first thing I did was connect to the phone over adb and ask it who UID 253 was.
+It turns out, that on Android, every app gets its own Linux UID, and the system services have well-known low-numbered UIDs (1000 is system, 1001 is the radio, etc.). So the first thing to do was to connect to the phone via adb and ask it who UID 253 was.
 
 [<img src="/assets/2026-07/01-chasing-253.png" width="500" alt="ADB terminal output showing no user, process, or package exists for UID 253">](/assets/2026-07/01-chasing-253.png)
 
-Nothing. No user is defined with that ID, no process was running as it, and no package claims it. UID 253 simply doesn't exist on the phone. A dead end — or so I thought.
+Classic investigation, it turns up nadda. No user is defined with that ID, no process was running as it, and no package claims it. UID 253 simply doesn't exist on the phone. A dead end — or was it?
 
 ## Hang on, it's negative
 
 Going back over the data, I clicked that the UID wasn't 253, it was **-253**. A real Linux UID can't be negative, so this had to be something Android made up. And it turns out Android does exactly that — its network accounting uses a handful of negative "virtual" UIDs for traffic that doesn't belong to a normal app. The documented ones are `-1` (UID_ALL), `-4` (UID_REMOVED, apps that have been uninstalled) and `-5` (UID_TETHERING, traffic from hotspot tethering).
 
-Dumping the phone's network stats showed three negative UIDs, and two of them were the documented ones.
+Back to adb, the phone's network stats showed three negative UIDs, and two of them were the documented ones.
 
 [<img src="/assets/2026-07/02-negative-uids.png" width="500" alt="Phone network stats dump listing three negative virtual UIDs">](/assets/2026-07/02-negative-uids.png)
 
-But `-253` isn't documented anywhere. Searching for it didn't turn up much either. The phone's own accounting had plenty to say about it though — here is its history, recorded against my home Wi-Fi:
+But `-253` isn't documented anywhere. It wasnt a once off either. The phone's own accounting had plenty to say about it though — here is its history, recorded against my home Wi-Fi:
 
 [<img src="/assets/2026-07/03-history.png" width="500" alt="Traffic history for UID -253 recorded against my home Wi-Fi">](/assets/2026-07/03-history.png)
 
-A couple of things stood out. What it sent was always larger then what it recieved. And decoding the bucket timestamps, every burst lands between about 8pm and midnight.
+Its traffic flow was always larger outbound then inbound. And decoding the bucket timestamps, every burst lands between about 8pm and midnight.
 
 [<img src="/assets/2026-07/06-times.png" width="500" alt="Decoded timestamps showing traffic bursts landing between 8pm and midnight">](/assets/2026-07/06-times.png)
 
-So: something with no app, uploading every night, with a 21MB burst on the 2nd of July.
+So: something with no app, uploading every night, with a 21MB burst on the 2nd of July. We are onto something...
+
+<img src="https://media1.tenor.com/m/C8Sl3HuV6UUAAAAC/were-on-the-verge-of-something-were-close.gif" width="300" alt="We are onto something GIF">
 
 ## Thinking in hex
 
