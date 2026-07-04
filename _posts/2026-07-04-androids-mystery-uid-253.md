@@ -62,34 +62,36 @@ The trick that cracked it was realising that -253 might not be meant to be read 
 
 [<img src="/assets/2026-07/04-hex.png" width="500" alt="-253 converted to an unsigned 32-bit hex value, showing 0xFFFFFF03">](/assets/2026-07/04-hex.png)
 
-`0xFFFFFF03`. Android uses values in the `0xFFFFFFxx` range as special "tags" for system traffic. That looked like too much of a coincidence.
+`0xFFFFFF03`. Android uses values in the `0xFFFFFFxx` range as special "tags" for system traffic. Bingo!
 
-## Grepping the Android source
+## To the source, Android Source!
 
-Next, I watched as Claude downloaded the source for Android's Connectivity module from AOSP and grepped it for `0xFFFFFF03`. One hit.
+Next, Claude explained that it needed to go back to the Android's Connectivity module to grep for the tag. Like the plot in a movie, it returned just one result. 
 
 [<img src="/assets/2026-07/05-aosp.png" width="500" alt="AOSP source code search result showing the TAG_SYSTEM_BACKUP constant in TrafficStats.java">](/assets/2026-07/05-aosp.png)
 
 `TAG_SYSTEM_BACKUP` — a hidden constant in `TrafficStats`, with a comment that says it all: *"Default tag value for BackupManager backup traffic; that is, traffic from the device to the storage backend."*
 
-My mystery night-time uploader was **Google Backup**. That explains everything: backups only run when the phone is idle, charging and on unmetered Wi-Fi — which for my phone means overnight on the bedside charger. It explains the upload-heavy traffic (backups go up, not down), and the big 21MB night would have been a fuller backup run.
+<img src="https://media1.tenor.com/m/jc9TgRwK5WYAAAAC/unmask.gif" width="300" alt="Unmask GIF">
+
+My mystery night-time uploader was **Google Backup**. That explains everything: backups only run when the phone is idle, charging and on unmetered Wi-Fi — which for my phone means overnight on the charger. It explains the upload-heavy traffic (backups go up, not down), and the big 21MB night would have been a fuller backup run.
 
 ## Double checking with Pi-hole
 
-I wasn't quite ready to close the case on a source code comment alone, so I went for one more piece of evidence. All the DNS on my network goes through a Pi-hole, so I pulled the phone's DNS queries for the night of the 2nd of July — the 21MB night — and filtered for anything backup related.
+But wait... I wasn't quite ready to close the case on a source code comment alone, so I went for one more piece of evidence. Fortunately all the DNS on my network goes through a Pi-hole, so I pulled the phone's DNS queries for the night of the 2nd of July — the 21MB night — and filtered for anything backup related.
 
 [<img src="/assets/2026-07/07-pihole.png" width="500" alt="Pi-hole DNS query log showing Google backup-related domains queried overnight">](/assets/2026-07/07-pihole.png)
 
 `androidplatformbackuprestore-pa.googleapis.com`, `mmsbackup.pa.googleapis.com`, `photosdata-pa.googleapis.com` — Google's backup and restore endpoints, queried steadily across exactly the window the mystery traffic appeared in. Case closed.
 
-## Wrapping up
-
 <img src="https://media1.tenor.com/m/Ru8YW-aVyJcAAAAd/tony-stark-tony-phew.gif" width="300" alt="Tony Stark phew relief GIF">
 
-What looked like a process quietly exfiltrating my data at night turned out to be my phone doing exactly what I asked it to do — backing itself up to Google. Slightly disappointing as far as threat hunting goes, but a good result, and I despite using Claude to help, I have learnt a bit about how Android accounts for traffic (I would have worked this out, but it would have taken me a LOT longer):
+## Wrapping up
 
-- Negative UIDs in Android's network stats are virtual buckets, not real apps
-- `-1` is everything, `-4` is uninstalled apps, `-5` is tethering — and undocumented `-253` is system backup traffic
-- If a negative UID doesn't make sense as a number, read it as unsigned hex — the `0xFFFFFFxx` range is Android's system traffic tags
+So what looked like a process quietly exfiltrating my data at night turned out to be my phone doing exactly what I asked it to do — backing itself up to Google. Slightly disappointing as far as threat hunting goes, but a good result.
+
+Even though Claude took the wheel for part of it, I have learnt a lot about how Android accounts for traffic (I would have worked this out, but it would have taken me a LOT longer):
+
+As for how effective the app is? Well I have caught and been able to investigate this. So not sure if it will catch something more advanced (if I was ever to be the target of something like that). But it is a start. 
 
 
