@@ -1,5 +1,6 @@
 ---
 title: Frequency Research
+description: "Tools and techniques for identifying radio signals and their owners, and researching frequencies in use nearby."
 ---
 
 # Overview

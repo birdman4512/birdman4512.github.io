@@ -1,5 +1,6 @@
 ---
 title: Building a TOR Transparent Gateway
+description: "Step-by-step build of a dual-homed Alpine Linux TOR transparent gateway with a default-drop kill switch, serving multiple client VLANs."
 ---
 
 # Building a TOR Transparent Gateway

@@ -1,5 +1,6 @@
 ---
 title: Blog
+description: "Writeups and tinkering notes from Dean Bird (VK4DSB) on amateur radio, DFIR/security tooling, and AI projects."
 ---
 
 # Blog

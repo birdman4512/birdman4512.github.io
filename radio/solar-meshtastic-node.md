@@ -1,5 +1,6 @@
 ---
 title: Solar Meshtastic Node
+description: "Building a solar-powered Meshtastic mesh relay node from a solar buoy kit and a Heltec T114 board."
 ---
 
 # Solar Meshtastic Node

@@ -1,5 +1,8 @@
 ---
 title: OpenClaw Setup
+seo:
+  noindex: true
+sitemap: false
 ---
 
 # OpenClaw Setup

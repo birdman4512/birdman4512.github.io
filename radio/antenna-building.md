@@ -1,5 +1,6 @@
 ---
 title: Antenna Building
+description: "Building and tuning amateur radio antennas, including a flowerpot antenna build with parts list, SWR tuning, and results."
 ---
 
 # Overview

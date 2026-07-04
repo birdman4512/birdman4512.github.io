@@ -1,5 +1,6 @@
 ---
 title: "OpenClaw: A Multi-Workspace AI Agent Setup"
+description: "How I built OpenClaw, a multi-workspace AI agent system that separates personal, business, forensic, and family contexts into isolated, purpose-built assistants."
 ---
 
 # OpenClaw: A Multi-Workspace AI Agent Setup

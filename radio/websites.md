@@ -1,5 +1,6 @@
 ---
 title: Helpful Websites
+description: "A curated list of amateur radio websites and tools covering licensing, band info, propagation, and signal identification."
 ---
 
 # Overview

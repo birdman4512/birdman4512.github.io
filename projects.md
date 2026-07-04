@@ -1,5 +1,6 @@
 ---
 title: Projects
+description: "Open-source DFIR and AI security tooling, live web apps, and amateur-radio builds by Dean Bird (VK4DSB)."
 ---
 
 # Projects

@@ -1,10 +1,14 @@
 theme: jekyll-theme-minimal
 title: Dean Bird - VK4DSB
 description: Amateur radio operator, IT security professional, and tinkerer based in Bellmere QLD.
+url: "https://dea.nbird.com.au"
+lang: en-AU
 remote_theme: pages-themes/hacker@v0.2.0
 plugins:
 - jekyll-remote-theme
 - jekyll-feed
+- jekyll-seo-tag
+- jekyll-sitemap
 
 future: true
 

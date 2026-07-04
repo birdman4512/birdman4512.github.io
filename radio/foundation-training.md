@@ -1,5 +1,6 @@
 ---
 title: Foundation Licence Training
+description: "Study guides, resources, and practice exams that helped in passing the Australian Foundation amateur radio licence."
 ---
 
 # Overview

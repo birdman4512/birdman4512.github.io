@@ -1,5 +1,6 @@
 ---
 title: Home
+description: "Dean Bird (VK4DSB) — amateur radio operator, digital forensics & incident response professional, and AI tinkerer based in Bellmere, QLD."
 ---
 
 # Dean Bird — VK4DSB
